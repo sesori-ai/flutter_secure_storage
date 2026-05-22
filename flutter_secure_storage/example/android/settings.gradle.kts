@@ -23,4 +23,11 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.3.21" apply false
 }
 
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 include(":app")
