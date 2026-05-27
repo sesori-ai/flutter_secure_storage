@@ -1,3 +1,6 @@
+## 4.2.2
+Fixed `deleteAll` and `containsKey` not acquiring the mutex lock, which could cause data races under concurrent access.
+
 ## 4.2.1
 Fix concurrent read/write operations causing data loss or a `PathAccessException` on Windows (issue #634).
 

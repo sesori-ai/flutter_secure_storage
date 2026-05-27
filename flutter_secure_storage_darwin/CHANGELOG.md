@@ -1,3 +1,7 @@
+## 0.3.2
+- Fixed `secStoreAvailabilitySink` not being called when protected data availability changes.
+- Fixed `kSecUseDataProtectionKeychain` being added to Keychain queries unconditionally; it is now only set when `useDataProtectionKeychain` is explicitly enabled.
+
 ## 0.3.1
 - Fixed iOS build by updating availability annotation for Secure Enclave methods from `iOS 11.3` to `iOS 13.0`.
 

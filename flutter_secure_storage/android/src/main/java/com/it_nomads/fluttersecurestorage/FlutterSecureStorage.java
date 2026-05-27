@@ -248,8 +248,18 @@ public class FlutterSecureStorage {
             if (config.isUseEncryptedSharedPreferences() && isAlreadyMigrated) {
                 Log.i(TAG, "Data already migrated, encryptedSharedPreferences ignored and can be safely removed.");
             }
-            preferences = nonEncryptedPreferences;
-            initializeStorageCipher(configSource, callback);
+            initializeStorageCipher(configSource, new SecurePreferencesCallback<>() {
+                @Override
+                public void onSuccess(Void unused) {
+                    preferences = nonEncryptedPreferences;
+                    callback.onSuccess(null);
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    callback.onError(e);
+                }
+            });
         }
     }
 

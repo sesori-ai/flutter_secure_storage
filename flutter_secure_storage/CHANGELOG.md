@@ -1,10 +1,31 @@
+## 10.3.1
+
+### Android
+- Fixed `AEADBadTagException` when biometric authentication is cancelled on first launch: a stale IV is now cleared and the cipher re-initialised in encrypt mode so the next authentication attempt succeeds.
+- Fixed `NullPointerException` when retrying an operation after a cancelled biometric prompt: `preferences` is now only assigned once cipher initialisation completes successfully, allowing a clean retry.
+
 ## 10.3.0
 
 ### Android
 - Added `AndroidBiometricType` enum and `biometricType` option to `AndroidOptions` to control which authentication methods are accepted during biometric prompts (requires `KeyCipherAlgorithm.AES_GCM_NoPadding`).
-  - `AndroidBiometricType.biometricOrDeviceCredential` (default) — accepts Class 3 biometrics or device credentials (PIN/pattern/password), preserving previous behaviour.
-  - `AndroidBiometricType.strongBiometricOnly` — restricts authentication to Class 3 (strong) biometrics only; device credentials are explicitly rejected.
+  - `AndroidBiometricType.biometricOrDeviceCredential` (default) accepts Class 3 biometrics or device credentials (PIN/pattern/password), preserving previous behaviour.
+  - `AndroidBiometricType.strongBiometricOnly` restricts authentication to Class 3 (strong) biometrics only; device credentials are explicitly rejected.
 - Fully enforced on Android 11+ (API 30+) via `setAllowedAuthenticators` on `BiometricPrompt` and `setUserAuthenticationParameters` on the KeyStore key. On earlier API levels the system may still permit device credentials.
+- Added `biometricPromptNegativeButton` option to `AndroidOptions` to customise the dismiss button label on the biometric prompt. Required when using `strongBiometricOnly` or on Android 10 and lower.
+
+### iOS / macOS
+- Fixed `secStoreAvailabilitySink` not being called when protected data availability changes.
+- Fixed `kSecUseDataProtectionKeychain` being added to Keychain queries unconditionally; it is now only set when `useDataProtectionKeychain` is explicitly enabled.
+
+### Windows
+- Fixed `deleteAll` and `containsKey` not acquiring the mutex lock, which could cause data races under concurrent access.
+  If you are on Dart >=3.10.0, this fix is applied automatically. Otherwise, pin `flutter_secure_storage_windows: ^4.2.2` in your `pubspec.yaml` to opt in and make sure your constraint is set for minimum of Dart >=3.10.0.
+
+### Linux
+- Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
+- Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
+- Fixed locked or unavailable keyring now surfacing as a catchable `PlatformException` with code `KeyringLocked`.
+- Fixed JSON parse errors and other C++ exceptions now surfacing as a `PlatformException` with code `StorageError` instead of sending malformed bytes through the channel.
 
 ## 10.2.0
 

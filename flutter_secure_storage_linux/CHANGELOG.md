@@ -1,3 +1,10 @@
+## 3.0.1
+- Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
+- Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
+- Fixed locked or unavailable keyring now surfacing as a catchable `PlatformException` with code `KeyringLocked`.
+- Fixed JSON parse errors and other C++ exceptions now surfacing as a `PlatformException` with code `StorageError` instead of sending malformed bytes through the channel.
+- Updated README with installation instructions for apt, dnf, pacman, Flatpak, and Snapcraft.
+
 ## 3.0.0
 - Fixed whitespace deprecation warning.
 - Reverted json.dump with indentations due to problems. If still needed, pin version to 2.x
