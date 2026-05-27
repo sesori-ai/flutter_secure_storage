@@ -150,7 +150,6 @@ class AndroidOptions extends Options {
   /// prompts.
   final AndroidBiometricType _biometricType;
 
-
   /// The prefix for a shared preference key. The prefix is used to make sure
   /// the key is unique to your application. An underscore (_) is added to the
   /// end of the prefix automatically. If not provided, a default prefix will
