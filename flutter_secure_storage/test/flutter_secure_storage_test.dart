@@ -1,8 +1,3 @@
-// Some tests intentionally construct AndroidOptions with deprecated cipher
-// algorithms to verify that legacy algorithm options serialise correctly and
-// that migration paths continue to work.
-// ignore_for_file: deprecated_member_use_from_same_package
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -374,7 +369,6 @@ void main() {
       const options = AndroidOptions.defaultOptions;
 
       expect(options.toMap(), {
-        'encryptedSharedPreferences': 'false',
         'resetOnError': 'true',
         'migrateOnAlgorithmChange': 'true',
         'migrateWithBackup': 'false',
@@ -382,7 +376,6 @@ void main() {
         'keyCipherAlgorithm': 'RSA_ECB_OAEPwithSHA_256andMGF1Padding',
         'storageCipherAlgorithm': 'AES_GCM_NoPadding',
         'biometricType': 'biometricOrDeviceCredential',
-        'sharedPreferencesName': '',
         'preferencesKeyPrefix': '',
         'storageNamespace': '',
         'biometricPromptTitle': 'Authenticate to access',
@@ -405,8 +398,7 @@ void main() {
         resetOnError: false,
         migrateOnAlgorithmChange: false,
         enforceBiometrics: true,
-        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-        storageCipherAlgorithm: StorageCipherAlgorithm.AES_CBC_PKCS7Padding,
+        keyCipherAlgorithm: KeyCipherAlgorithm.AES_GCM_NoPadding,
         storageNamespace: 'customPrefs',
         preferencesKeyPrefix: 'customPrefix',
         biometricPromptTitle: 'Custom Title',
@@ -414,15 +406,13 @@ void main() {
       );
 
       expect(options.toMap(), {
-        'encryptedSharedPreferences': 'false',
         'resetOnError': 'false',
         'migrateOnAlgorithmChange': 'false',
         'migrateWithBackup': 'false',
         'enforceBiometrics': 'true',
-        'keyCipherAlgorithm': 'RSA_ECB_PKCS1Padding',
-        'storageCipherAlgorithm': 'AES_CBC_PKCS7Padding',
+        'keyCipherAlgorithm': 'AES_GCM_NoPadding',
+        'storageCipherAlgorithm': 'AES_GCM_NoPadding',
         'biometricType': 'biometricOrDeviceCredential',
-        'sharedPreferencesName': '',
         'preferencesKeyPrefix': 'customPrefix',
         'storageNamespace': 'customPrefs',
         'biometricPromptTitle': 'Custom Title',
@@ -436,7 +426,6 @@ void main() {
       const options = AndroidOptions.biometric();
 
       expect(options.toMap(), {
-        'encryptedSharedPreferences': 'false',
         'resetOnError': 'true',
         'migrateOnAlgorithmChange': 'true',
         'migrateWithBackup': 'false',
@@ -444,7 +433,6 @@ void main() {
         'keyCipherAlgorithm': 'AES_GCM_NoPadding',
         'storageCipherAlgorithm': 'AES_GCM_NoPadding',
         'biometricType': 'biometricOrDeviceCredential',
-        'sharedPreferencesName': '',
         'preferencesKeyPrefix': '',
         'storageNamespace': '',
         'biometricPromptTitle': 'Authenticate to access',
@@ -463,7 +451,6 @@ void main() {
       );
 
       expect(options.toMap(), {
-        'encryptedSharedPreferences': 'false',
         'resetOnError': 'true',
         'migrateOnAlgorithmChange': 'true',
         'migrateWithBackup': 'false',
@@ -471,7 +458,6 @@ void main() {
         'keyCipherAlgorithm': 'AES_GCM_NoPadding',
         'storageCipherAlgorithm': 'AES_GCM_NoPadding',
         'biometricType': 'biometricOrDeviceCredential',
-        'sharedPreferencesName': '',
         'preferencesKeyPrefix': '',
         'storageNamespace': '',
         'biometricPromptTitle': 'Unlock Secure Storage',
@@ -492,19 +478,6 @@ void main() {
       expect(options.toMap()['storageCipherAlgorithm'], 'AES_GCM_NoPadding');
     });
 
-    test('AndroidOptions with legacy RSA cipher algorithms', () {
-      const options = AndroidOptions(
-        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-        storageCipherAlgorithm: StorageCipherAlgorithm.AES_CBC_PKCS7Padding,
-      );
-
-      expect(options.toMap()['keyCipherAlgorithm'], 'RSA_ECB_PKCS1Padding');
-      expect(
-        options.toMap()['storageCipherAlgorithm'],
-        'AES_CBC_PKCS7Padding',
-      );
-    });
-
     test('AndroidOptions with AES key cipher (for biometric support)', () {
       const options = AndroidOptions(
         keyCipherAlgorithm: KeyCipherAlgorithm.AES_GCM_NoPadding,
@@ -523,8 +496,7 @@ void main() {
         resetOnError: false,
         migrateOnAlgorithmChange: false,
         enforceBiometrics: true,
-        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-        storageCipherAlgorithm: StorageCipherAlgorithm.AES_CBC_PKCS7Padding,
+        keyCipherAlgorithm: KeyCipherAlgorithm.AES_GCM_NoPadding,
         storageNamespace: 'newPrefs',
         preferencesKeyPrefix: 'newPrefix',
         biometricPromptTitle: 'New Title',
@@ -532,15 +504,13 @@ void main() {
       );
 
       expect(copied.toMap(), {
-        'encryptedSharedPreferences': 'false',
         'resetOnError': 'false',
         'migrateOnAlgorithmChange': 'false',
         'migrateWithBackup': 'false',
         'enforceBiometrics': 'true',
-        'keyCipherAlgorithm': 'RSA_ECB_PKCS1Padding',
-        'storageCipherAlgorithm': 'AES_CBC_PKCS7Padding',
+        'keyCipherAlgorithm': 'AES_GCM_NoPadding',
+        'storageCipherAlgorithm': 'AES_GCM_NoPadding',
         'biometricType': 'biometricOrDeviceCredential',
-        'sharedPreferencesName': '',
         'preferencesKeyPrefix': 'newPrefix',
         'storageNamespace': 'newPrefs',
         'biometricPromptTitle': 'New Title',
@@ -568,8 +538,7 @@ void main() {
         resetOnError: false,
         migrateOnAlgorithmChange: false,
         enforceBiometrics: true,
-        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-        storageCipherAlgorithm: StorageCipherAlgorithm.AES_CBC_PKCS7Padding,
+        keyCipherAlgorithm: KeyCipherAlgorithm.AES_GCM_NoPadding,
       );
 
       final copied = original.copyWith();
@@ -577,25 +546,10 @@ void main() {
       expect(copied.toMap(), original.toMap());
     });
 
-    test(
-        'AndroidOptions handles null sharedPreferencesName and '
-        'preferencesKeyPrefix', () {
+    test('AndroidOptions handles null preferencesKeyPrefix', () {
       const options = AndroidOptions.defaultOptions;
 
-      expect(options.toMap()['sharedPreferencesName'], '');
       expect(options.toMap()['preferencesKeyPrefix'], '');
-    });
-
-    // TODO(remove): delete this test when sharedPreferencesName is removed.
-    // It exists to ensure the deprecated parameter still works until removal,
-    // and to fail loudly when the parameter is eventually deleted.
-    test('deprecated sharedPreferencesName still maps to its legacy key', () {
-      // Intentionally tests the deprecated parameter —
-      // remove this test alongside the parameter when it is deleted.
-      const options = AndroidOptions(sharedPreferencesName: 'legacyPrefs');
-
-      expect(options.toMap()['sharedPreferencesName'], 'legacyPrefs');
-      expect(options.toMap()['storageNamespace'], '');
     });
 
     test('AndroidOptions with custom biometric prompts', () {
@@ -666,22 +620,6 @@ void main() {
 
       expect(copied.toMap()['migrateWithBackup'], 'true');
       expect(copied.toMap()['migrateOnAlgorithmChange'], 'true');
-    });
-
-    test('Deprecated encryptedSharedPreferences still functions', () {
-      const options = AndroidOptions(encryptedSharedPreferences: true);
-
-      expect(options.toMap()['encryptedSharedPreferences'], 'true');
-    });
-
-    test('AndroidOptions.biometric with deprecated encryptedSharedPreferences',
-        () {
-      const options = AndroidOptions.biometric(
-        encryptedSharedPreferences: true,
-      );
-
-      expect(options.toMap()['encryptedSharedPreferences'], 'true');
-      expect(options.toMap()['keyCipherAlgorithm'], 'AES_GCM_NoPadding');
     });
 
     test('All KeyCipherAlgorithm enum values are correctly mapped', () {
