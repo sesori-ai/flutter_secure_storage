@@ -13,6 +13,15 @@ env:
   PUB_ENVIRONMENT: bot.github
 
 jobs:
+  dependency_review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
   analysis:
     name: Analysis
     runs-on: ubuntu-latest
