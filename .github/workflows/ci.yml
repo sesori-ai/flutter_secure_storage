@@ -514,7 +514,7 @@ jobs:
           cache: true
 
       - name: Setup ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
+        uses: nanasess/setup-chromedriver@v3
 
       - name: Start ChromeDriver
         run: chromedriver --port=4444 &
