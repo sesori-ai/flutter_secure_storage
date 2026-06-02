@@ -63,13 +63,13 @@ class AndroidOptions extends Options {
     this.biometricPromptTitle,
     this.biometricPromptSubtitle,
     this.biometricPromptNegativeButton,
-  })  : _resetOnError = resetOnError,
-        _migrateOnAlgorithmChange = migrateOnAlgorithmChange,
-        _migrateWithBackup = migrateWithBackup,
-        _enforceBiometrics = enforceBiometrics,
-        _keyCipherAlgorithm = keyCipherAlgorithm,
-        _storageCipherAlgorithm = storageCipherAlgorithm,
-        _biometricType = biometricType;
+  }) : _resetOnError = resetOnError,
+       _migrateOnAlgorithmChange = migrateOnAlgorithmChange,
+       _migrateWithBackup = migrateWithBackup,
+       _enforceBiometrics = enforceBiometrics,
+       _keyCipherAlgorithm = keyCipherAlgorithm,
+       _storageCipherAlgorithm = storageCipherAlgorithm,
+       _biometricType = biometricType;
 
   /// Maximum security storage with optional biometric authentication.
   /// - Optionally requires biometric authentication
@@ -91,13 +91,13 @@ class AndroidOptions extends Options {
     this.biometricPromptTitle,
     this.biometricPromptSubtitle,
     this.biometricPromptNegativeButton,
-  })  : _resetOnError = resetOnError,
-        _migrateOnAlgorithmChange = migrateOnAlgorithmChange,
-        _migrateWithBackup = migrateWithBackup,
-        _enforceBiometrics = enforceBiometrics,
-        _keyCipherAlgorithm = KeyCipherAlgorithm.AES_GCM_NoPadding,
-        _storageCipherAlgorithm = StorageCipherAlgorithm.AES_GCM_NoPadding,
-        _biometricType = biometricType;
+  }) : _resetOnError = resetOnError,
+       _migrateOnAlgorithmChange = migrateOnAlgorithmChange,
+       _migrateWithBackup = migrateWithBackup,
+       _enforceBiometrics = enforceBiometrics,
+       _keyCipherAlgorithm = KeyCipherAlgorithm.AES_GCM_NoPadding,
+       _storageCipherAlgorithm = StorageCipherAlgorithm.AES_GCM_NoPadding,
+       _biometricType = biometricType;
 
   /// When an error is detected, automatically reset all data. This will prevent
   /// fatal errors regarding an unknown key however keep in mind that it will
@@ -194,22 +194,20 @@ class AndroidOptions extends Options {
 
   @override
   Map<String, String> toMap() => <String, String>{
-        'resetOnError': '$_resetOnError',
-        'migrateOnAlgorithmChange': '$_migrateOnAlgorithmChange',
-        'migrateWithBackup': '$_migrateWithBackup',
-        'enforceBiometrics': '$_enforceBiometrics',
-        'keyCipherAlgorithm': _keyCipherAlgorithm.name,
-        'storageCipherAlgorithm': _storageCipherAlgorithm.name,
-        'biometricType': _biometricType.name,
-        'preferencesKeyPrefix': preferencesKeyPrefix ?? '',
-        'storageNamespace': storageNamespace ?? '',
-        'biometricPromptTitle':
-            biometricPromptTitle ?? 'Authenticate to access',
-        'biometricPromptSubtitle':
-            biometricPromptSubtitle ?? 'Use biometrics or device credentials',
-        'biometricPromptNegativeButton':
-            biometricPromptNegativeButton ?? 'Cancel',
-      };
+    'resetOnError': '$_resetOnError',
+    'migrateOnAlgorithmChange': '$_migrateOnAlgorithmChange',
+    'migrateWithBackup': '$_migrateWithBackup',
+    'enforceBiometrics': '$_enforceBiometrics',
+    'keyCipherAlgorithm': _keyCipherAlgorithm.name,
+    'storageCipherAlgorithm': _storageCipherAlgorithm.name,
+    'biometricType': _biometricType.name,
+    'preferencesKeyPrefix': preferencesKeyPrefix ?? '',
+    'storageNamespace': storageNamespace ?? '',
+    'biometricPromptTitle': biometricPromptTitle ?? 'Authenticate to access',
+    'biometricPromptSubtitle':
+        biometricPromptSubtitle ?? 'Use biometrics or device credentials',
+    'biometricPromptNegativeButton': biometricPromptNegativeButton ?? 'Cancel',
+  };
 
   /// Creates a copy of this AndroidOptions with the given fields replaced.
   AndroidOptions copyWith({
@@ -225,23 +223,21 @@ class AndroidOptions extends Options {
     String? biometricPromptTitle,
     String? biometricPromptSubtitle,
     String? biometricPromptNegativeButton,
-  }) =>
-      AndroidOptions(
-        resetOnError: resetOnError ?? _resetOnError,
-        migrateOnAlgorithmChange:
-            migrateOnAlgorithmChange ?? _migrateOnAlgorithmChange,
-        migrateWithBackup: migrateWithBackup ?? _migrateWithBackup,
-        enforceBiometrics: enforceBiometrics ?? _enforceBiometrics,
-        keyCipherAlgorithm: keyCipherAlgorithm ?? _keyCipherAlgorithm,
-        storageCipherAlgorithm:
-            storageCipherAlgorithm ?? _storageCipherAlgorithm,
-        biometricType: biometricType ?? _biometricType,
-        preferencesKeyPrefix: preferencesKeyPrefix ?? this.preferencesKeyPrefix,
-        storageNamespace: storageNamespace ?? this.storageNamespace,
-        biometricPromptTitle: biometricPromptTitle ?? this.biometricPromptTitle,
-        biometricPromptSubtitle:
-            biometricPromptSubtitle ?? this.biometricPromptSubtitle,
-        biometricPromptNegativeButton:
-            biometricPromptNegativeButton ?? this.biometricPromptNegativeButton,
-      );
+  }) => AndroidOptions(
+    resetOnError: resetOnError ?? _resetOnError,
+    migrateOnAlgorithmChange:
+        migrateOnAlgorithmChange ?? _migrateOnAlgorithmChange,
+    migrateWithBackup: migrateWithBackup ?? _migrateWithBackup,
+    enforceBiometrics: enforceBiometrics ?? _enforceBiometrics,
+    keyCipherAlgorithm: keyCipherAlgorithm ?? _keyCipherAlgorithm,
+    storageCipherAlgorithm: storageCipherAlgorithm ?? _storageCipherAlgorithm,
+    biometricType: biometricType ?? _biometricType,
+    preferencesKeyPrefix: preferencesKeyPrefix ?? this.preferencesKeyPrefix,
+    storageNamespace: storageNamespace ?? this.storageNamespace,
+    biometricPromptTitle: biometricPromptTitle ?? this.biometricPromptTitle,
+    biometricPromptSubtitle:
+        biometricPromptSubtitle ?? this.biometricPromptSubtitle,
+    biometricPromptNegativeButton:
+        biometricPromptNegativeButton ?? this.biometricPromptNegativeButton,
+  );
 }
