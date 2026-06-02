@@ -1,3 +1,6 @@
+## 0.4.0
+- Raised minimum iOS deployment target from 12.0 to 13.0 to fix Swift compiler errors when building with Swift Package Manager. CryptoKit (used for Secure Enclave support) requires iOS 13.0+.
+
 ## 0.3.2
 - Fixed `secStoreAvailabilitySink` not being called when protected data availability changes.
 - Fixed `kSecUseDataProtectionKeychain` being added to Keychain queries unconditionally; it is now only set when `useDataProtectionKeychain` is explicitly enabled.

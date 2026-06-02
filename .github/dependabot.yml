@@ -18,3 +18,39 @@ updates:
       interval: "weekly"
     reviewers:
       - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage_platform_interface"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage_darwin"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage_linux"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage_web"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
+  - package-ecosystem: "pub"
+    directory: "/flutter_secure_storage_windows"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "juliansteenbakker"
