@@ -449,6 +449,10 @@ jobs:
 #      - name: Cache Gradle
 #        uses: gradle/actions/setup-gradle@v5
 
+      - name: Pre-build APK
+        working-directory: flutter_secure_storage/example
+        run: flutter build apk --debug
+
       - name: Cache AVD
         uses: actions/cache@v5
         id: avd-cache
@@ -479,7 +483,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: flutter test integration_test
+          script: flutter test integration_test/app_test.dart
           working-directory: flutter_secure_storage/example
 
   integration_tests_web:
