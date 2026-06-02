@@ -449,6 +449,10 @@ jobs:
 #      - name: Cache Gradle
 #        uses: gradle/actions/setup-gradle@v5
 
+      - name: Pre-build APK
+        working-directory: flutter_secure_storage/example
+        run: flutter build apk --debug
+
       - name: Cache AVD
         uses: actions/cache@v5
         id: avd-cache
