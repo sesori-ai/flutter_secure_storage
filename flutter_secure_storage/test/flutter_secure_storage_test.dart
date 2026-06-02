@@ -98,8 +98,10 @@ void main() {
       const options = <String, String>{};
       await methodStorage.write(key: key, value: 'test', options: options);
 
-      final result =
-          await methodStorage.containsKey(key: key, options: options);
+      final result = await methodStorage.containsKey(
+        key: key,
+        options: options,
+      );
 
       expect(result, true);
     });
@@ -167,8 +169,9 @@ void main() {
     });
 
     test('Can be extended', () {
-      FlutterSecureStoragePlatform.instance =
-          TestFlutterSecureStoragePlatform({});
+      FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
+        {},
+      );
     });
   });
 
@@ -421,28 +424,29 @@ void main() {
       });
     });
 
-    test('AndroidOptions.biometric constructor should have correct defaults',
-        () {
-      const options = AndroidOptions.biometric();
-
-      expect(options.toMap(), {
-        'resetOnError': 'true',
-        'migrateOnAlgorithmChange': 'true',
-        'migrateWithBackup': 'false',
-        'enforceBiometrics': 'false',
-        'keyCipherAlgorithm': 'AES_GCM_NoPadding',
-        'storageCipherAlgorithm': 'AES_GCM_NoPadding',
-        'biometricType': 'biometricOrDeviceCredential',
-        'preferencesKeyPrefix': '',
-        'storageNamespace': '',
-        'biometricPromptTitle': 'Authenticate to access',
-        'biometricPromptSubtitle': 'Use biometrics or device credentials',
-        'biometricPromptNegativeButton': 'Cancel',
-      });
-    });
-
     test(
-        'AndroidOptions.biometric with enforceBiometrics=true '
+      'AndroidOptions.biometric constructor should have correct defaults',
+      () {
+        const options = AndroidOptions.biometric();
+
+        expect(options.toMap(), {
+          'resetOnError': 'true',
+          'migrateOnAlgorithmChange': 'true',
+          'migrateWithBackup': 'false',
+          'enforceBiometrics': 'false',
+          'keyCipherAlgorithm': 'AES_GCM_NoPadding',
+          'storageCipherAlgorithm': 'AES_GCM_NoPadding',
+          'biometricType': 'biometricOrDeviceCredential',
+          'preferencesKeyPrefix': '',
+          'storageNamespace': '',
+          'biometricPromptTitle': 'Authenticate to access',
+          'biometricPromptSubtitle': 'Use biometrics or device credentials',
+          'biometricPromptNegativeButton': 'Cancel',
+        });
+      },
+    );
+
+    test('AndroidOptions.biometric with enforceBiometrics=true '
         'requires authentication', () {
       const options = AndroidOptions.biometric(
         enforceBiometrics: true,
@@ -751,14 +755,15 @@ void main() {
     });
 
     test(
-        'WindowsOptions copyWith without changes should retain original values',
-        () {
-      const original = WindowsOptions(useBackwardCompatibility: true);
+      'WindowsOptions copyWith without changes should retain original values',
+      () {
+        const original = WindowsOptions(useBackwardCompatibility: true);
 
-      final copied = original.copyWith();
+        final copied = original.copyWith();
 
-      expect(copied.toMap(), original.toMap());
-    });
+        expect(copied.toMap(), original.toMap());
+      },
+    );
 
     test('WindowsOptions defaultOptions matches default constructor', () {
       const defaultOptions = WindowsOptions.defaultOptions;
@@ -816,8 +821,9 @@ void main() {
         'resultLimit': '10',
         'shouldReturnPersistentReference': 'true',
         'authenticationUIBehavior': 'require_auth',
-        'accessControlFlags':
-            [AccessControlFlag.biometryCurrentSet.name].toString(),
+        'accessControlFlags': [
+          AccessControlFlag.biometryCurrentSet.name,
+        ].toString(),
         'useSecureEnclave': 'false',
       });
     });
@@ -957,8 +963,9 @@ void main() {
         ..registerListener(key: 'key2', listener: trackingListener);
 
       // Setup mock for deleteAll
-      when(() => mockPlatform.deleteAll(options: any(named: 'options')))
-          .thenAnswer((_) async {});
+      when(
+        () => mockPlatform.deleteAll(options: any(named: 'options')),
+      ).thenAnswer((_) async {});
 
       // Call deleteAll
       await storage.deleteAll();
@@ -1051,8 +1058,7 @@ void main() {
   });
 
   group('iOS/macOS Cupertino Protected Data Tests', () {
-    test(
-        'onCupertinoProtectedDataAvailabilityChanged returns stream '
+    test('onCupertinoProtectedDataAvailabilityChanged returns stream '
         'for MethodChannel platform', () {
       // Set platform to MethodChannel BEFORE creating storage
       FlutterSecureStoragePlatform.instance = methodStorage;
@@ -1070,8 +1076,7 @@ void main() {
       FlutterSecureStoragePlatform.instance = mockPlatform;
     });
 
-    test(
-        'onCupertinoProtectedDataAvailabilityChanged returns null '
+    test('onCupertinoProtectedDataAvailabilityChanged returns null '
         'for non-MethodChannel platform', () {
       // Use mock platform (not MethodChannel)
       final result = storage.onCupertinoProtectedDataAvailabilityChanged;
@@ -1080,8 +1085,7 @@ void main() {
       expect(result, isNull);
     });
 
-    test(
-        'isCupertinoProtectedDataAvailable calls MethodChannel platform '
+    test('isCupertinoProtectedDataAvailable calls MethodChannel platform '
         'method', () async {
       // Set platform to MethodChannel BEFORE creating storage
       FlutterSecureStoragePlatform.instance = methodStorage;
@@ -1091,8 +1095,8 @@ void main() {
       // In test environment, the actual platform method may not be
       // fully implemented, so we just verify the call completes
       // and the conditional branch is executed
-      final result =
-          await methodChannelStorage.isCupertinoProtectedDataAvailable();
+      final result = await methodChannelStorage
+          .isCupertinoProtectedDataAvailable();
 
       // The method executes the MethodChannel branch (covered for codecov)
       // Result may be null in test environment, but the code path is covered
@@ -1102,8 +1106,7 @@ void main() {
       FlutterSecureStoragePlatform.instance = mockPlatform;
     });
 
-    test(
-        'isCupertinoProtectedDataAvailable returns null '
+    test('isCupertinoProtectedDataAvailable returns null '
         'for non-MethodChannel platform', () async {
       // Use mock platform (not MethodChannel)
       final result = await storage.isCupertinoProtectedDataAvailable();
@@ -1112,8 +1115,7 @@ void main() {
       expect(result, isNull);
     });
 
-    test(
-        'onCupertinoProtectedDataAvailabilityChanged accesses platform '
+    test('onCupertinoProtectedDataAvailabilityChanged accesses platform '
         'for type check', () {
       // This test verifies the method can be called and performs
       // the platform type check without crashing
@@ -1123,15 +1125,17 @@ void main() {
       );
     });
 
-    test('isCupertinoProtectedDataAvailable accesses platform for type check',
-        () async {
-      // This test verifies the method can be called and performs
-      // the platform type check without crashing
-      await expectLater(
-        storage.isCupertinoProtectedDataAvailable(),
-        completion(isNull),
-      );
-    });
+    test(
+      'isCupertinoProtectedDataAvailable accesses platform for type check',
+      () async {
+        // This test verifies the method can be called and performs
+        // the platform type check without crashing
+        await expectLater(
+          storage.isCupertinoProtectedDataAvailable(),
+          completion(isNull),
+        );
+      },
+    );
   });
 
   group('Test Helper Methods', () {
@@ -1147,8 +1151,9 @@ void main() {
       );
 
       // The test platform should have the initial values
-      final platform = FlutterSecureStoragePlatform.instance
-          as TestFlutterSecureStoragePlatform;
+      final platform =
+          FlutterSecureStoragePlatform.instance
+              as TestFlutterSecureStoragePlatform;
       expect(platform.data, equals(testData));
     });
 
@@ -1160,8 +1165,9 @@ void main() {
         isA<TestFlutterSecureStoragePlatform>(),
       );
 
-      final platform = FlutterSecureStoragePlatform.instance
-          as TestFlutterSecureStoragePlatform;
+      final platform =
+          FlutterSecureStoragePlatform.instance
+              as TestFlutterSecureStoragePlatform;
       expect(platform.data.isEmpty, isTrue);
     });
   });
@@ -1232,67 +1238,73 @@ void main() {
       ).called(1);
     });
 
-    test('_selectOptions returns macOS options when platform is macOS',
-        () async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    test(
+      '_selectOptions returns macOS options when platform is macOS',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
 
-      await storage.write(
-        key: 'test',
-        value: 'value',
-        mOptions: const MacOsOptions(
-          accessibility: KeychainAccessibility.first_unlock,
-        ),
-      );
-
-      // Verify the write was called (covers macOS branch)
-      verify(
-        () => mockPlatform.write(
+        await storage.write(
           key: 'test',
           value: 'value',
-          options: any(named: 'options'),
-        ),
-      ).called(1);
-    });
+          mOptions: const MacOsOptions(
+            accessibility: KeychainAccessibility.first_unlock,
+          ),
+        );
 
-    test('_selectOptions returns Windows options when platform is Windows',
-        () async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        // Verify the write was called (covers macOS branch)
+        verify(
+          () => mockPlatform.write(
+            key: 'test',
+            value: 'value',
+            options: any(named: 'options'),
+          ),
+        ).called(1);
+      },
+    );
 
-      await storage.write(
-        key: 'test',
-        value: 'value',
-        wOptions: WindowsOptions.defaultOptions,
-      );
+    test(
+      '_selectOptions returns Windows options when platform is Windows',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
 
-      // Verify the write was called (covers Windows branch)
-      verify(
-        () => mockPlatform.write(
+        await storage.write(
           key: 'test',
           value: 'value',
-          options: any(named: 'options'),
-        ),
-      ).called(1);
-    });
+          wOptions: WindowsOptions.defaultOptions,
+        );
 
-    test('_selectOptions returns Linux options when platform is Linux',
-        () async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+        // Verify the write was called (covers Windows branch)
+        verify(
+          () => mockPlatform.write(
+            key: 'test',
+            value: 'value',
+            options: any(named: 'options'),
+          ),
+        ).called(1);
+      },
+    );
 
-      await storage.write(
-        key: 'test',
-        value: 'value',
-        lOptions: LinuxOptions.defaultOptions,
-      );
+    test(
+      '_selectOptions returns Linux options when platform is Linux',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.linux;
 
-      // Verify the write was called (covers Linux branch)
-      verify(
-        () => mockPlatform.write(
+        await storage.write(
           key: 'test',
           value: 'value',
-          options: any(named: 'options'),
-        ),
-      ).called(1);
-    });
+          lOptions: LinuxOptions.defaultOptions,
+        );
+
+        // Verify the write was called (covers Linux branch)
+        verify(
+          () => mockPlatform.write(
+            key: 'test',
+            value: 'value',
+            options: any(named: 'options'),
+          ),
+        ).called(1);
+      },
+    );
 
     test('_selectOptions throws for unsupported platform', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
