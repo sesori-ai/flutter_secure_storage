@@ -382,16 +382,32 @@ jobs:
       - name: Bootstrap Workspace with Melos
         run: melos bootstrap
 
-      - name: Start D-Bus Session and Keyring Daemon (locked)
+      - name: Start D-Bus Session and Keyring Daemon (no default collection)
         run: |
           eval $(dbus-launch --sh-syntax)
           echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> $GITHUB_ENV
           echo "DBUS_SESSION_BUS_PID=$DBUS_SESSION_BUS_PID" >> $GITHUB_ENV
           gnome-keyring-daemon --daemonize --components=secrets
 
-      - name: Run Linux Locked-Keyring Integration Tests
+      - name: Verify Default Collection Is Missing
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
+
+      - name: Run Linux Missing-Collection Integration Tests
         working-directory: flutter_secure_storage/example
-        run: xvfb-run flutter test integration_test/linux_locked_keyring_test.dart -d linux
+        run: xvfb-run flutter test integration_test/linux_missing_default_collection_test.dart -d linux
+
+      - name: Verify Deletes Did Not Create a Collection
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
 
       - name: Unlock Keyring
         run: echo "" | gnome-keyring-daemon --unlock --replace --components=secrets
