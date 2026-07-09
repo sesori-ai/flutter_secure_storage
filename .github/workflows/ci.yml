@@ -397,11 +397,13 @@ jobs:
             --method org.freedesktop.Secret.Service.ReadAlias default)
           test "$alias_path" = "(objectpath '/',)"
 
+          DISPLAY= dbus-update-activation-environment DISPLAY
+
       - name: Run Linux Missing-Collection Integration Tests
         working-directory: flutter_secure_storage/example
         run: xvfb-run flutter test integration_test/linux_missing_default_collection_test.dart -d linux
 
-      - name: Verify Deletes Did Not Create a Collection
+      - name: Verify Missing-Collection Operations Did Not Create a Collection
         run: |
           alias_path=$(gdbus call --session \
             --dest org.freedesktop.secrets \
