@@ -14,6 +14,8 @@ import 'package:integration_test/integration_test.dart';
 /// locked keyring. An interactive first write may open the desktop's
 /// collection-creation prompt and succeed. The headless CI environment makes
 /// that prompt unavailable and verifies that the write fails safely instead.
+/// CI runs the suite both with no collections and with an unrelated secret in
+/// another collection to verify that only matching data blocks access.
 ///
 /// Run with a keyring daemon registered on D-Bus but no default alias:
 ///   flutter test integration_test/linux_missing_default_collection_test.dart -d linux
@@ -43,7 +45,13 @@ void main() {
         (_) async {
           await expectLater(
             _storage.write(key: 'k', value: 'v'),
-            throwsA(isA<PlatformException>()),
+            throwsA(
+              isA<PlatformException>().having(
+                (error) => error.code,
+                'code',
+                isNot('KeyringLocked'),
+              ),
+            ),
           );
         },
       );
