@@ -121,10 +121,26 @@ private:
 
     if (!collection) {
       const bool missingDefaultCollection = err == nullptr;
-      g_object_unref(service);
       if (missingDefaultCollection) {
+        g_autoptr(GError) searchError = nullptr;
+        GList *matchingItems = secret_service_search_sync(
+            service, &the_schema, m_attributes.getGHashTable(),
+            SECRET_SEARCH_NONE, nullptr, &searchError);
+        const bool hasMatchingItems = matchingItems != nullptr;
+        if (matchingItems) {
+          g_list_free_full(matchingItems, g_object_unref);
+        }
+        g_object_unref(service);
+
+        // With no alias and no matching item this is a fresh profile. If data
+        // exists elsewhere, fail closed before a write can create a second
+        // default collection and orphan the original item.
+        if (searchError || hasMatchingItems) {
+          throw "KeyringLocked";
+        }
         return false;
       }
+      g_object_unref(service);
       throw "KeyringLocked";
     }
 
