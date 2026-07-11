@@ -552,7 +552,27 @@ jobs:
 
       - name: Run Linux Orphaned-Collection Integration Tests
         working-directory: flutter_secure_storage/example
-        run: xvfb-run flutter test integration_test/linux_orphaned_collection_test.dart -d linux
+        run: |
+          service=/org/freedesktop/secrets
+          login_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias login)
+          login_path=$(printf '%s' "$login_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$login_path"
+          test "$login_path" != "/"
+          test "$login_path" != "/org/freedesktop/secrets/collection/session"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default "$login_path" >/dev/null
+
+          xvfb-run flutter test \
+            --dart-define=FSS_DESTRUCTIVE_KEYRING_TESTS=true \
+            integration_test/linux_orphaned_collection_test.dart -d linux
 
   integration_tests_android:
     name: Android Tests

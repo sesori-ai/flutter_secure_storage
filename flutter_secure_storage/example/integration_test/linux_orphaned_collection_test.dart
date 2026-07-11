@@ -11,11 +11,17 @@ import 'package:integration_test/integration_test.dart';
 ///
 /// Reads and mutations must fail closed instead of treating this as a fresh
 /// profile or creating a second default collection.
+///
+/// This suite deletes the current default collection. It is disabled unless
+/// explicitly enabled and must only run against an isolated test keyring.
 
 const _storage = FlutterSecureStorage();
 const _sentinelKey = 'orphaned_collection_sentinel';
 const _sentinelValue = 'preserve-me';
 const _sessionCollectionPath = '/org/freedesktop/secrets/collection/session';
+const _destructiveTestsEnabled = bool.fromEnvironment(
+  'FSS_DESTRUCTIVE_KEYRING_TESTS',
+);
 
 Future<ProcessResult> _callDbus(
   String objectPath,
@@ -164,6 +170,8 @@ void main() {
         await _expectKeyringUnavailable(_storage.deleteAll);
       });
     },
-    skip: kIsWeb || !Platform.isLinux ? 'Linux only' : null,
+    skip: kIsWeb || !Platform.isLinux || !_destructiveTestsEnabled
+        ? 'Linux only; set FSS_DESTRUCTIVE_KEYRING_TESTS=true to run'
+        : null,
   );
 }
