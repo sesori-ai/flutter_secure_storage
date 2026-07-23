@@ -24,6 +24,7 @@ public class FlutterSecureStorageConfig {
     private static final String DEFAULT_BIOMETRIC_PROMPT_NEGATIVE_BUTTON = "Cancel";
     private static final String DEFAULT_STORAGE_CIPHER_ALGORITHM = "AES_GCM_NoPadding";
     private static final String DEFAULT_KEY_CIPHER_ALGORITHM = "RSA_ECB_OAEPwithSHA_256andMGF1Padding";
+    private static final Boolean DEFAULT_BIOMETRIC_CONFIRMATION_REQUIRED = true;
 
     public static final String PREF_OPTION_NAME = "sharedPreferencesName";
     public static final String PREF_OPTION_PREFIX = "preferencesKeyPrefix";
@@ -41,6 +42,7 @@ public class FlutterSecureStorageConfig {
     public static final String PREF_OPTION_STORAGE_CIPHER_ALGORITHM = "storageCipherAlgorithm";
     public static final String PREF_OPTION_KEY_CIPHER_ALGORITHM = "keyCipherAlgorithm";
     public static final String PREF_OPTION_STORAGE_NAMESPACE = "storageNamespace";
+    public static final String PREF_OPTION_BIOMETRIC_CONFIRMATION_REQUIRED = "requireBiometricConfirmation";
 
     private static final String TAG = "FlutterSecureStorageConfig";
 
@@ -53,6 +55,7 @@ public class FlutterSecureStorageConfig {
     private final boolean migrateWithBackup;
     private final boolean enforceBiometrics;
     private final boolean strongBiometricOnly;
+    private final boolean biometricConfirmationRequired;
     private final String biometricPromptTitle;
     private final String biometricPromptSubtitle;
     private final String biometricPromptNegativeButton;
@@ -72,6 +75,7 @@ public class FlutterSecureStorageConfig {
                     + "Expected one of: " + BIOMETRIC_TYPE_STRONG + ", " + BIOMETRIC_TYPE_DEVICE_CREDENTIAL);
         }
         this.strongBiometricOnly = BIOMETRIC_TYPE_STRONG.equals(biometricTypeValue);
+        this.biometricConfirmationRequired = getBooleanOption(options, PREF_OPTION_BIOMETRIC_CONFIRMATION_REQUIRED, DEFAULT_BIOMETRIC_CONFIRMATION_REQUIRED);
         this.biometricPromptTitle = getStringOption(
                 options,
                 PREF_OPTION_BIOMETRIC_PROMPT_TITLE,
@@ -148,6 +152,7 @@ public class FlutterSecureStorageConfig {
 
     public boolean getEnforceBiometrics() { return enforceBiometrics; }
     public boolean isStrongBiometricOnly() { return strongBiometricOnly; }
+    public boolean isBiometricConfirmationRequired() { return biometricConfirmationRequired; }
 
     public String getBiometricPromptTitle() { return biometricPromptTitle; }
     public String getPrefOptionBiometricPromptSubtitle() { return biometricPromptSubtitle; }
