@@ -1051,6 +1051,10 @@ public class FlutterSecureStorage {
             promptInfoBuilder.setNegativeButton(config.getBiometricPromptNegativeButton(), executor, (dialog, which) -> cancellationSignal.cancel());
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            promptInfoBuilder.setConfirmationRequired(config.isBiometricConfirmationRequired());
+        }
+
         BiometricPrompt promptInfo = promptInfoBuilder.build();
 
         BiometricPrompt.AuthenticationCallback callback = new BiometricPrompt.AuthenticationCallback() {

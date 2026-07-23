@@ -58,6 +58,7 @@ class AndroidOptions extends Options {
         StorageCipherAlgorithm.AES_GCM_NoPadding,
     AndroidBiometricType biometricType =
         AndroidBiometricType.biometricOrDeviceCredential,
+    bool requireBiometricConfirmation = true,
     this.preferencesKeyPrefix,
     this.storageNamespace,
     this.biometricPromptTitle,
@@ -69,7 +70,8 @@ class AndroidOptions extends Options {
        _enforceBiometrics = enforceBiometrics,
        _keyCipherAlgorithm = keyCipherAlgorithm,
        _storageCipherAlgorithm = storageCipherAlgorithm,
-       _biometricType = biometricType;
+       _biometricType = biometricType,
+       _requireBiometricConfirmation = requireBiometricConfirmation;
 
   /// Maximum security storage with optional biometric authentication.
   /// - Optionally requires biometric authentication
@@ -86,6 +88,7 @@ class AndroidOptions extends Options {
     bool enforceBiometrics = false,
     AndroidBiometricType biometricType =
         AndroidBiometricType.biometricOrDeviceCredential,
+    bool requireBiometricConfirmation = true,
     this.preferencesKeyPrefix,
     this.storageNamespace,
     this.biometricPromptTitle,
@@ -97,7 +100,8 @@ class AndroidOptions extends Options {
        _enforceBiometrics = enforceBiometrics,
        _keyCipherAlgorithm = KeyCipherAlgorithm.AES_GCM_NoPadding,
        _storageCipherAlgorithm = StorageCipherAlgorithm.AES_GCM_NoPadding,
-       _biometricType = biometricType;
+       _biometricType = biometricType,
+       _requireBiometricConfirmation = requireBiometricConfirmation;
 
   /// When an error is detected, automatically reset all data. This will prevent
   /// fatal errors regarding an unknown key however keep in mind that it will
@@ -150,6 +154,18 @@ class AndroidOptions extends Options {
   /// prompts.
   final AndroidBiometricType _biometricType;
 
+  /// Whether the user must press an explicit confirmation button after
+  /// passive biometric authentication (e.g. face recognition) succeeds.
+  ///
+  /// When `false`, passive biometrics can authenticate without requiring
+  /// an additional button press, enabling lower-friction implicit flows.
+  /// See [setConfirmationRequired](https://developer.android.com/identity/sign-in/biometric-auth#no-explicit-user-action).
+  ///
+  /// Only takes effect on Android 10 (API 29) and higher.
+  ///
+  /// Defaults to true.
+  final bool _requireBiometricConfirmation;
+
   /// The prefix for a shared preference key. The prefix is used to make sure
   /// the key is unique to your application. An underscore (_) is added to the
   /// end of the prefix automatically. If not provided, a default prefix will
@@ -201,6 +217,7 @@ class AndroidOptions extends Options {
     'keyCipherAlgorithm': _keyCipherAlgorithm.name,
     'storageCipherAlgorithm': _storageCipherAlgorithm.name,
     'biometricType': _biometricType.name,
+    'requireBiometricConfirmation': '$_requireBiometricConfirmation',
     'preferencesKeyPrefix': preferencesKeyPrefix ?? '',
     'storageNamespace': storageNamespace ?? '',
     'biometricPromptTitle': biometricPromptTitle ?? 'Authenticate to access',
@@ -218,6 +235,7 @@ class AndroidOptions extends Options {
     KeyCipherAlgorithm? keyCipherAlgorithm,
     StorageCipherAlgorithm? storageCipherAlgorithm,
     AndroidBiometricType? biometricType,
+    bool? requireBiometricConfirmation,
     String? preferencesKeyPrefix,
     String? storageNamespace,
     String? biometricPromptTitle,
@@ -232,6 +250,8 @@ class AndroidOptions extends Options {
     keyCipherAlgorithm: keyCipherAlgorithm ?? _keyCipherAlgorithm,
     storageCipherAlgorithm: storageCipherAlgorithm ?? _storageCipherAlgorithm,
     biometricType: biometricType ?? _biometricType,
+    requireBiometricConfirmation:
+        requireBiometricConfirmation ?? _requireBiometricConfirmation,
     preferencesKeyPrefix: preferencesKeyPrefix ?? this.preferencesKeyPrefix,
     storageNamespace: storageNamespace ?? this.storageNamespace,
     biometricPromptTitle: biometricPromptTitle ?? this.biometricPromptTitle,

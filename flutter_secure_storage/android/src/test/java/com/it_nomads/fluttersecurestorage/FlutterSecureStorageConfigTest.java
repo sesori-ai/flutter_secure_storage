@@ -358,6 +358,23 @@ public class FlutterSecureStorageConfigTest {
     }
 
     // -------------------------------------------------------------------------
+    // isBiometricConfirmationRequired
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void defaults_isBiometricConfirmationRequired_isTrue() {
+        assertTrue(emptyConfig().isBiometricConfirmationRequired());
+    }
+
+    @Test
+    public void custom_isBiometricConfirmationRequired_false() {
+        FlutterSecureStorageConfig config = configFrom(
+            FlutterSecureStorageConfig.PREF_OPTION_BIOMETRIC_CONFIRMATION_REQUIRED, "false"
+        );
+        assertFalse(config.isBiometricConfirmationRequired());
+    }
+
+    // -------------------------------------------------------------------------
     // migrateWithBackup
     // -------------------------------------------------------------------------
 
