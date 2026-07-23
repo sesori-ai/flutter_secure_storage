@@ -1,0 +1,42 @@
+name: release-please sync constraints
+
+# Release Please only bumps a package's own pubspec.yaml version, it has no
+# knowledge that flutter_secure_storage/pubspec.yaml pins the same package
+# with a `^` dependency constraint. On a breaking (major) bump this leaves
+# the melos workspace unresolvable (`pub get` fails on the Analysis job)
+# until someone manually widens the constraint. This workflow applies that
+# update automatically on every push to a Release Please PR branch.
+on:
+  pull_request:
+    branches: [develop, master]
+    paths:
+      - '.release-please-manifest.json'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-constraints:
+    if: startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Sync platform package constraints
+        run: python3 scripts/sync_platform_constraints.py
+
+      - name: Commit and push if changed
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to sync."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flutter_secure_storage/pubspec.yaml
+          git commit -m "chore: sync flutter_secure_storage_* version constraints"
+          git push origin "HEAD:$HEAD_REF"
