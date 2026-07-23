@@ -1,3 +1,5 @@
+# Changelog
+
 ## 11.0.0-beta.1
 
 **Breaking changes**
