@@ -476,9 +476,15 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
+          script: >-
+            echo "Generated AVD snapshot for caching.";
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true
 
       - name: Run Integration Tests
+        id: integration_tests
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -487,7 +493,33 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: flutter test integration_test/app_test.dart
+          script: >-
+            flutter test integration_test/app_test.dart;
+            test_exit_code=$?;
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true;
+            exit $test_exit_code
+          working-directory: flutter_secure_storage/example
+
+      # Retry once in case the run still fails for unrelated infra reasons.
+      - name: Run Integration Tests (retry)
+        if: steps.integration_tests.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: >-
+            flutter test integration_test/app_test.dart;
+            test_exit_code=$?;
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true;
+            exit $test_exit_code
           working-directory: flutter_secure_storage/example
 
   integration_tests_web:
