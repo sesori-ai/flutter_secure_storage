@@ -376,7 +376,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev libblkid-dev liblzma-dev libsecret-1-dev \
-            gnome-keyring dbus-x11 xvfb
+            libsecret-tools gnome-keyring dbus-x11 xvfb
 
       - name: Install Melos
         run: |
@@ -386,16 +386,52 @@ jobs:
       - name: Bootstrap Workspace with Melos
         run: melos bootstrap
 
-      - name: Start D-Bus Session and Keyring Daemon (locked)
+      - name: Start D-Bus Session and Keyring Daemon (no default collection)
         run: |
           eval $(dbus-launch --sh-syntax)
           echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> $GITHUB_ENV
           echo "DBUS_SESSION_BUS_PID=$DBUS_SESSION_BUS_PID" >> $GITHUB_ENV
           gnome-keyring-daemon --daemonize --components=secrets
 
-      - name: Run Linux Locked-Keyring Integration Tests
+      - name: Verify Default Collection Is Missing
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections \
+            > "$RUNNER_TEMP/secret-service-collections-before.txt"
+
+          env DISPLAY= dbus-update-activation-environment DISPLAY
+
+      - name: Run Linux Missing-Collection Integration Tests
         working-directory: flutter_secure_storage/example
-        run: xvfb-run flutter test integration_test/linux_locked_keyring_test.dart -d linux
+        run: xvfb-run flutter test integration_test/linux_missing_default_collection_test.dart -d linux
+
+      - name: Verify Missing-Collection Operations Did Not Create a Collection
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections \
+            > "$RUNNER_TEMP/secret-service-collections-after.txt"
+
+          diff -u \
+            "$RUNNER_TEMP/secret-service-collections-before.txt" \
+            "$RUNNER_TEMP/secret-service-collections-after.txt"
 
       - name: Unlock Keyring
         run: echo "" | gnome-keyring-daemon --unlock --replace --components=secrets
@@ -403,6 +439,144 @@ jobs:
       - name: Run Linux Integration Tests
         working-directory: flutter_secure_storage/example
         run: xvfb-run flutter test integration_test/linux_test.dart -d linux
+
+      - name: Run Linux Nonmatching-Secret Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: |
+          service=/org/freedesktop/secrets
+          fixture_attr=fss-test-fixture
+          fixture_id=unrelated
+          fixture_value=preserve-me
+
+          cleanup() {
+            status=$?
+            trap - EXIT
+            if ! secret-tool clear "$fixture_attr" "$fixture_id" >/dev/null 2>&1; then
+              test "$status" -ne 0 || status=1
+            fi
+            if ! echo "" | gnome-keyring-daemon \
+              --unlock --replace --components=secrets >/dev/null; then
+              test "$status" -ne 0 || status=1
+            fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          alias_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          alias_path=$(printf '%s' "$alias_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$alias_path"
+          test "$alias_path" != "/"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default /org/freedesktop/secrets/collection/session >/dev/null
+
+          printf '%s' "$fixture_value" | secret-tool store \
+            --label='flutter_secure_storage unrelated integration fixture' \
+            "$fixture_attr" "$fixture_id"
+          test "$(secret-tool lookup "$fixture_attr" "$fixture_id")" = \
+            "$fixture_value"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default "$alias_path" >/dev/null
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$alias_path" \
+            --method org.freedesktop.Secret.Collection.Delete >/dev/null
+          test "$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)" = \
+            "(objectpath '/',)"
+
+          collections_before=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections)
+
+          xvfb-run flutter test \
+            integration_test/linux_missing_default_collection_test.dart -d linux
+
+          test "$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)" = \
+            "(objectpath '/',)"
+          collections_after=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections)
+          test "$collections_after" = "$collections_before"
+          test "$(secret-tool lookup "$fixture_attr" "$fixture_id")" = \
+            "$fixture_value"
+
+      - name: Lock Default Collection
+        run: |
+          alias_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          alias_path=$(printf '%s' "$alias_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$alias_path"
+          test "$alias_path" != "/"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.Lock \
+            "[objectpath '$alias_path']"
+
+          locked=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$alias_path" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Collection Locked)
+          test "$locked" = "(<true>,)"
+
+          env DISPLAY= dbus-update-activation-environment DISPLAY
+
+      - name: Run Linux Locked-Keyring Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: xvfb-run flutter test integration_test/linux_locked_keyring_test.dart -d linux
+
+      - name: Unlock Keyring After Locked-Keyring Tests
+        run: echo "" | gnome-keyring-daemon --unlock --replace --components=secrets
+
+      - name: Run Linux Orphaned-Collection Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: |
+          service=/org/freedesktop/secrets
+          login_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias login)
+          login_path=$(printf '%s' "$login_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$login_path"
+          test "$login_path" != "/"
+          test "$login_path" != "/org/freedesktop/secrets/collection/session"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default "$login_path" >/dev/null
+
+          xvfb-run flutter test \
+            --dart-define=FSS_DESTRUCTIVE_KEYRING_TESTS=true \
+            integration_test/linux_orphaned_collection_test.dart -d linux
 
   integration_tests_android:
     name: Android Tests

@@ -47,18 +47,20 @@ public:
   void deleteItem(const char *key) {
     try {
       nlohmann::json root = readFromKeyring();
-      if (root.is_null()) {
-          return;
+      if (!root.is_object() || !root.contains(key)) {
+        return;
       }
       root.erase(key);
       storeToKeyring(root);
     } catch (const std::exception& e) {
-        return;
+      return;
     }
   }
 
   bool deleteKeyring() {
-    warmupKeyring();
+    if (!warmupKeyring()) {
+      return true;
+    }
     return this->storeToKeyring(nlohmann::json::object());
   }
 
@@ -77,10 +79,12 @@ public:
   }
 
   nlohmann::json readFromKeyring() {
-    nlohmann::json value;
+    nlohmann::json value = nlohmann::json::object();
     g_autoptr(GError) err = nullptr;
 
-    warmupKeyring();
+    if (!warmupKeyring()) {
+      return value;
+    }
 
     secret_autofree gchar *result = secret_password_lookupv_sync(
         &the_schema, m_attributes.getGHashTable(), nullptr, &err);
@@ -97,10 +101,11 @@ public:
 private:
   // Ensures the default keyring is accessible. Uses the libsecret service API
   // to detect a locked keyring and throw a distinct "KeyringLocked" sentinel so
-  // callers can surface the right error code to Dart.
+  // callers can surface the right error code to Dart. A missing default
+  // collection is the normal state of a fresh profile, not a locked keyring.
   // Loading all collections also resolves cold-keyring lookup failures:
   // https://gitlab.gnome.org/GNOME/gnome-keyring/-/issues/89
-  void warmupKeyring() {
+  bool warmupKeyring() {
     g_autoptr(GError) err = nullptr;
 
     SecretService *service = secret_service_get_sync(
@@ -115,6 +120,26 @@ private:
         service, SECRET_COLLECTION_DEFAULT, SECRET_COLLECTION_NONE, nullptr, &err);
 
     if (!collection) {
+      const bool missingDefaultCollection = err == nullptr;
+      if (missingDefaultCollection) {
+        g_autoptr(GError) searchError = nullptr;
+        GList *matchingItems = secret_service_search_sync(
+            service, &the_schema, m_attributes.getGHashTable(),
+            SECRET_SEARCH_NONE, nullptr, &searchError);
+        const bool hasMatchingItems = matchingItems != nullptr;
+        if (matchingItems) {
+          g_list_free_full(matchingItems, g_object_unref);
+        }
+        g_object_unref(service);
+
+        // With no alias and no matching item this is a fresh profile. If data
+        // exists elsewhere, fail closed before a write can create a second
+        // default collection and orphan the original item.
+        if (searchError || hasMatchingItems) {
+          throw "KeyringLocked";
+        }
+        return false;
+      }
       g_object_unref(service);
       throw "KeyringLocked";
     }
@@ -122,7 +147,7 @@ private:
     if (!secret_collection_get_locked(collection)) {
       g_object_unref(collection);
       g_object_unref(service);
-      return;
+      return true;
     }
 
     GList *to_unlock = g_list_append(nullptr, collection);
@@ -138,5 +163,7 @@ private:
     if (n == 0) {
       throw "KeyringLocked";
     }
+
+    return true;
   }
 };
