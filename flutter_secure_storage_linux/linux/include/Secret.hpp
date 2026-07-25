@@ -101,16 +101,12 @@ public:
   }
 
   void deleteItem(const char *key) {
-    try {
-      nlohmann::json root = readFromKeyring();
-      if (!root.is_object() || !root.contains(key)) {
-        return;
-      }
-      root.erase(key);
-      storeToKeyring(root);
-    } catch (const std::exception& e) {
+    nlohmann::json root = readFromKeyring();
+    if (!root.is_object() || !root.contains(key)) {
       return;
     }
+    root.erase(key);
+    storeToKeyring(root);
   }
 
   bool deleteKeyring() {
@@ -193,9 +189,7 @@ private:
           throw LibsecretError("secret_service_search_sync", searchError);
         }
         if (hasMatchingItems) {
-          throw LibsecretError(
-              "KeyringLocked",
-              "Matching data exists outside the missing default collection");
+          throw LibsecretError("KeyringLocked", "KeyringLocked");
         }
         return false;
       }
@@ -220,7 +214,7 @@ private:
     g_object_unref(service);
 
     if (n == 0) {
-      throw LibsecretError("KeyringLocked", "Keyring is locked");
+      throw LibsecretError("KeyringLocked", "KeyringLocked");
     }
 
     return true;
