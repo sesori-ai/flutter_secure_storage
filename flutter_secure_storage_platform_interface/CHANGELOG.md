@@ -1,3 +1,6 @@
+## 2.0.2
+Remove redundant `./` prefix from part directives.
+
 ## 2.0.1
 Remove dart:io to support WASM build of web.
 
