@@ -230,12 +230,12 @@ public class FlutterSecureStoragePlugin implements MethodCallHandler, FlutterPlu
                                 result.notImplemented();
                                 break;
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         if (config.shouldDeleteOnFailure()) {
                             try {
                                 secureStorage.deleteAll();
                                 result.success("Data has been reset");
-                            } catch (Exception ex) {
+                            } catch (Throwable ex) {
                                 handleException(ex);
                             }
                         } else {
@@ -249,13 +249,17 @@ public class FlutterSecureStoragePlugin implements MethodCallHandler, FlutterPlu
                     handleException(e);
                 }
             });
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // Catch Throwable, not just Exception: some OEM builds throw
+                // java.lang.Error subclasses (e.g. NoSuchFieldError) from Android
+                // Keystore framework code, and an uncaught Error on this
+                // HandlerThread would crash the entire app process.
                 handleException(e);
             }
         }
 
 
-        private void handleException(Exception e) {
+        private void handleException(Throwable e) {
             StringWriter stringWriter = new StringWriter();
             e.printStackTrace(new PrintWriter(stringWriter));
             // Send exception message as the message field so Flutter can parse it
