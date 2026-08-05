@@ -44,7 +44,7 @@ jobs:
         run: flutter build web --release --base-href /flutter_secure_storage/
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v4
