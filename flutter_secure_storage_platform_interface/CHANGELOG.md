@@ -1,6 +1,15 @@
 ## 2.0.2
 Remove redundant `./` prefix from part directives.
 
+## [2.0.3](https://github.com/juliansteenbakker/flutter_secure_storage/compare/flutter_secure_storage_platform_interface-v2.0.2...flutter_secure_storage_platform_interface-v2.0.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **darwin:** restore access to items written before 0.3.0's SecAccess… ([4523503](https://github.com/juliansteenbakker/flutter_secure_storage/commit/4523503b3b4e86264252aed7024604a83d5f9399))
+* remove redundant ./ prefix from part directives ([cc7018d](https://github.com/juliansteenbakker/flutter_secure_storage/commit/cc7018d15eae56b389348d73f788ae1a03c606c6))
+* remove redundant ./ prefix from part directives ([bc15a90](https://github.com/juliansteenbakker/flutter_secure_storage/commit/bc15a90ff36a3c67f87cae57bf0a9ef94051a7f1))
+
 ## 2.0.1
 Remove dart:io to support WASM build of web.
 
