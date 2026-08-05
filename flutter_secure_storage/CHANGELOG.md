@@ -1,3 +1,24 @@
+## Unreleased
+
+### Android
+
+- Fixed a fatal app crash when Android Keystore framework code throws `java.lang.Error` subclasses (e.g. `NoSuchFieldError` on some OEM builds with mismatched framework/KeyMint classes): the plugin's worker thread now catches `Throwable` and reports a `PlatformException` to Dart instead of killing the process.
+
+## 11.0.0-beta.1
+
+**Breaking changes**
+
+items deprecated in v10 have been removed. 
+Any data saved using deprecated algorithms or features will be unusable after this upgrade. If you used a version prior to v10, upgrade to v10 first so existing data is migrated.
+
+### Android
+
+- Removed `KeyCipherAlgorithm.RSA_ECB_PKCS1Padding`. Upgrade to v10 first so existing data is migrated to `RSA_ECB_OAEPwithSHA_256andMGF1Padding` before upgrading to v11.
+- Removed `StorageCipherAlgorithm.AES_CBC_PKCS7Padding`. Upgrade to v10 first so existing data is migrated to `AES_GCM_NoPadding` before upgrading to v11.
+- Removed `encryptedSharedPreferences` parameter from `AndroidOptions` and `AndroidOptions.biometric`. The Jetpack Security (EncryptedSharedPreferences) backend is no longer supported; any remaining data was automatically migrated to custom cipher storage in v10.
+- Removed `sharedPreferencesName` from `AndroidOptions`. Use `storageNamespace` instead for full namespace isolation.
+- Raised `minSdk` to 24 and `compileSdk` to 37. Flutter 3.35 raised its own Android minimum to API 24, making API 23 support unverifiable with any supported Flutter version. The legacy AES-CBC cipher path that supported API 21-22 has been removed.
+
 ## 10.3.1
 
 ### Android
@@ -26,7 +47,6 @@
 - Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
 - Fixed locked or unavailable keyring now surfacing as a catchable `PlatformException` with code `KeyringLocked`.
 - Fixed JSON parse errors and other C++ exceptions now surfacing as a `PlatformException` with code `StorageError` instead of sending malformed bytes through the channel.
-
 ## 10.2.0
 
 ### Android
@@ -42,6 +62,9 @@
   If you are on Dart >=3.10.0, this fix is applied automatically. Otherwise, pin `flutter_secure_storage_windows: ^4.2.0` in your `pubspec.yaml` to opt in and make sure your constraint is set for minimum of Dart >=3.10.0.
 
 ## 10.1.0
+
+### Windows
+- Updated `flutter_secure_storage_windows` to 4.2.0 with compatibility fixes for `win32` 6.0.0.
 
 ### Android
 - Added `storageNamespace` option to `AndroidOptions` for full namespace isolation across storage instances (SharedPreferences, KeyStore aliases, config/key storage). Use this instead of `sharedPreferencesName` when running multiple `FlutterSecureStorage` instances with different cipher configurations.

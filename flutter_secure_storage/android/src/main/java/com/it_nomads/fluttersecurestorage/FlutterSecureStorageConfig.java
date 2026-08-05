@@ -17,7 +17,6 @@ public class FlutterSecureStorageConfig {
     private static final Boolean DEFAULT_DELETE_ON_FAILURE = false;
     private static final Boolean DEFAULT_MIGRATE_ON_ALGORITHM_CHANGE = true;
     private static final Boolean DEFAULT_MIGRATE_WITH_BACKUP = false;
-    private static final Boolean DEFAULT_ENCRYPTED_SHARED_PREFERENCES = false;
     private static final Boolean DEFAULT_ENFORCE_BIOMETRICS = false;
     private static final String DEFAULT_BIOMETRIC_TYPE = BIOMETRIC_TYPE_DEVICE_CREDENTIAL;
     private static final String DEFAULT_BIOMETRIC_PROMPT_TITLE = "Authenticate to access";
@@ -25,13 +24,13 @@ public class FlutterSecureStorageConfig {
     private static final String DEFAULT_BIOMETRIC_PROMPT_NEGATIVE_BUTTON = "Cancel";
     private static final String DEFAULT_STORAGE_CIPHER_ALGORITHM = "AES_GCM_NoPadding";
     private static final String DEFAULT_KEY_CIPHER_ALGORITHM = "RSA_ECB_OAEPwithSHA_256andMGF1Padding";
+    private static final Boolean DEFAULT_BIOMETRIC_CONFIRMATION_REQUIRED = true;
 
     public static final String PREF_OPTION_NAME = "sharedPreferencesName";
     public static final String PREF_OPTION_PREFIX = "preferencesKeyPrefix";
     public static final String PREF_OPTION_DELETE_ON_FAILURE = "resetOnError";
     public static final String PREF_OPTION_MIGRATE_ON_ALGORITHM_CHANGE = "migrateOnAlgorithmChange";
     public static final String PREF_OPTION_MIGRATE_WITH_BACKUP = "migrateWithBackup";
-    public static final String PREF_OPTION_ENCRYPTED_SHARED_PREFERENCES = "encryptedSharedPreferences";
     public static final String PREF_OPTION_ENFORCE_BIOMETRICS = "enforceBiometrics";
     public static final String PREF_OPTION_BIOMETRIC_TYPE = "biometricType";
     public static final String PREF_OPTION_BIOMETRIC_PROMPT_TITLE = "biometricPromptTitle";
@@ -43,6 +42,7 @@ public class FlutterSecureStorageConfig {
     public static final String PREF_OPTION_STORAGE_CIPHER_ALGORITHM = "storageCipherAlgorithm";
     public static final String PREF_OPTION_KEY_CIPHER_ALGORITHM = "keyCipherAlgorithm";
     public static final String PREF_OPTION_STORAGE_NAMESPACE = "storageNamespace";
+    public static final String PREF_OPTION_BIOMETRIC_CONFIRMATION_REQUIRED = "requireBiometricConfirmation";
 
     private static final String TAG = "FlutterSecureStorageConfig";
 
@@ -53,9 +53,9 @@ public class FlutterSecureStorageConfig {
     private final boolean deleteOnFailure;
     private final boolean migrateOnAlgorithmChange;
     private final boolean migrateWithBackup;
-    private final boolean useEncryptedSharedPreferences;
     private final boolean enforceBiometrics;
     private final boolean strongBiometricOnly;
+    private final boolean biometricConfirmationRequired;
     private final String biometricPromptTitle;
     private final String biometricPromptSubtitle;
     private final String biometricPromptNegativeButton;
@@ -68,7 +68,6 @@ public class FlutterSecureStorageConfig {
         this.deleteOnFailure = getBooleanOption(options, PREF_OPTION_DELETE_ON_FAILURE, DEFAULT_DELETE_ON_FAILURE);
         this.migrateOnAlgorithmChange = getBooleanOption(options, PREF_OPTION_MIGRATE_ON_ALGORITHM_CHANGE, DEFAULT_MIGRATE_ON_ALGORITHM_CHANGE);
         this.migrateWithBackup = getBooleanOption(options, PREF_OPTION_MIGRATE_WITH_BACKUP, DEFAULT_MIGRATE_WITH_BACKUP);
-        this.useEncryptedSharedPreferences = getBooleanOption(options, PREF_OPTION_ENCRYPTED_SHARED_PREFERENCES, DEFAULT_ENCRYPTED_SHARED_PREFERENCES);
         this.enforceBiometrics = getBooleanOption(options, PREF_OPTION_ENFORCE_BIOMETRICS, DEFAULT_ENFORCE_BIOMETRICS);
         String biometricTypeValue = getStringOption(options, PREF_OPTION_BIOMETRIC_TYPE, DEFAULT_BIOMETRIC_TYPE);
         if (!BIOMETRIC_TYPE_STRONG.equals(biometricTypeValue) && !BIOMETRIC_TYPE_DEVICE_CREDENTIAL.equals(biometricTypeValue)) {
@@ -76,6 +75,7 @@ public class FlutterSecureStorageConfig {
                     + "Expected one of: " + BIOMETRIC_TYPE_STRONG + ", " + BIOMETRIC_TYPE_DEVICE_CREDENTIAL);
         }
         this.strongBiometricOnly = BIOMETRIC_TYPE_STRONG.equals(biometricTypeValue);
+        this.biometricConfirmationRequired = getBooleanOption(options, PREF_OPTION_BIOMETRIC_CONFIRMATION_REQUIRED, DEFAULT_BIOMETRIC_CONFIRMATION_REQUIRED);
         this.biometricPromptTitle = getStringOption(
                 options,
                 PREF_OPTION_BIOMETRIC_PROMPT_TITLE,
@@ -150,9 +150,9 @@ public class FlutterSecureStorageConfig {
     public boolean shouldMigrateOnAlgorithmChange() { return migrateOnAlgorithmChange; }
     public boolean shouldMigrateWithBackup() { return migrateWithBackup; }
 
-    public boolean isUseEncryptedSharedPreferences() { return useEncryptedSharedPreferences; }
     public boolean getEnforceBiometrics() { return enforceBiometrics; }
     public boolean isStrongBiometricOnly() { return strongBiometricOnly; }
+    public boolean isBiometricConfirmationRequired() { return biometricConfirmationRequired; }
 
     public String getBiometricPromptTitle() { return biometricPromptTitle; }
     public String getPrefOptionBiometricPromptSubtitle() { return biometricPromptSubtitle; }

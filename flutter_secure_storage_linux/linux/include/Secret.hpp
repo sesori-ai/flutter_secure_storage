@@ -2,9 +2,65 @@
 #include "json.hpp"
 #include <libsecret/secret.h>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #define secret_autofree _GLIB_CLEANUP(secret_cleanup_free)
 static inline void secret_cleanup_free(gchar **p) { secret_password_free(*p); }
+
+class LibsecretError : public std::runtime_error {
+  std::string error_code;
+
+  static const char *codeFromGError(const GError *error) {
+    if (error == nullptr) {
+      return "Libsecret error";
+    }
+
+    if (g_error_matches(error, SECRET_ERROR, SECRET_ERROR_IS_LOCKED)) {
+      return "KeyringLocked";
+    }
+
+    if (g_error_matches(error, SECRET_ERROR, SECRET_ERROR_NO_SUCH_OBJECT)) {
+      return "SecretNotFound";
+    }
+
+    return "Libsecret error";
+  }
+
+  static std::string messageWithContext(const char *context,
+                                        const char *message) {
+    if (message == nullptr) {
+      return context == nullptr ? "Libsecret error" : context;
+    }
+
+    if (context == nullptr || context[0] == '\0') {
+      return message;
+    }
+
+    std::string result(context);
+    result += ": ";
+    result += message;
+    return result;
+  }
+
+public:
+  explicit LibsecretError(const char *message)
+      : LibsecretError("Libsecret error", message) {}
+
+  LibsecretError(const char *code, const char *message)
+      : std::runtime_error(
+            message == nullptr
+                ? (code == nullptr ? "Libsecret error" : code)
+                : message),
+        error_code(code == nullptr ? "Libsecret error" : code) {}
+
+  LibsecretError(const char *context, const GError *error)
+      : std::runtime_error(messageWithContext(
+            context, error == nullptr ? nullptr : error->message)),
+        error_code(codeFromGError(error)) {}
+
+  const char *code() const { return error_code.c_str(); }
+};
 
 class SecretStorage {
   FHashTable m_attributes;
@@ -45,20 +101,18 @@ public:
   }
 
   void deleteItem(const char *key) {
-    try {
-      nlohmann::json root = readFromKeyring();
-      if (root.is_null()) {
-          return;
-      }
-      root.erase(key);
-      storeToKeyring(root);
-    } catch (const std::exception& e) {
-        return;
+    nlohmann::json root = readFromKeyring();
+    if (!root.is_object() || !root.contains(key)) {
+      return;
     }
+    root.erase(key);
+    storeToKeyring(root);
   }
 
   bool deleteKeyring() {
-    warmupKeyring();
+    if (!warmupKeyring()) {
+      return true;
+    }
     return this->storeToKeyring(nlohmann::json::object());
   }
 
@@ -70,23 +124,25 @@ public:
         output.c_str(), nullptr, &err);
 
     if (err) {
-      throw err->message;
+      throw LibsecretError("secret_password_storev_sync", err);
     }
 
     return result;
   }
 
   nlohmann::json readFromKeyring() {
-    nlohmann::json value;
+    nlohmann::json value = nlohmann::json::object();
     g_autoptr(GError) err = nullptr;
 
-    warmupKeyring();
+    if (!warmupKeyring()) {
+      return value;
+    }
 
     secret_autofree gchar *result = secret_password_lookupv_sync(
         &the_schema, m_attributes.getGHashTable(), nullptr, &err);
 
     if (err) {
-      throw err->message;
+      throw LibsecretError("secret_password_lookupv_sync", err);
     }
     if(result != NULL && strcmp(result, "") != 0){
       value = nlohmann::json::parse(result);
@@ -95,34 +151,56 @@ public:
   }
 
 private:
-  // Ensures the default keyring is accessible. Uses the libsecret service API
-  // to detect a locked keyring and throw a distinct "KeyringLocked" sentinel so
-  // callers can surface the right error code to Dart.
-  // Loading all collections also resolves cold-keyring lookup failures:
-  // https://gitlab.gnome.org/GNOME/gnome-keyring/-/issues/89
-  void warmupKeyring() {
+  // Ensures the default keyring is accessible and distinguishes a locked
+  // collection from other storage errors. A missing default collection is
+  // the normal state of a fresh profile, not a locked keyring. Do not load
+  // all collections here: some Secret Service backends fail when an
+  // unrelated stale item exists in another collection.
+  bool warmupKeyring() {
     g_autoptr(GError) err = nullptr;
 
     SecretService *service = secret_service_get_sync(
-        static_cast<SecretServiceFlags>(SECRET_SERVICE_OPEN_SESSION | SECRET_SERVICE_LOAD_COLLECTIONS),
-        nullptr, &err);
+        SECRET_SERVICE_OPEN_SESSION, nullptr, &err);
 
     if (!service) {
-      throw "KeyringLocked";
+      throw LibsecretError("secret_service_get_sync", err);
     }
 
     SecretCollection *collection = secret_collection_for_alias_sync(
         service, SECRET_COLLECTION_DEFAULT, SECRET_COLLECTION_NONE, nullptr, &err);
 
     if (!collection) {
+      const bool missingDefaultCollection = err == nullptr;
+      if (missingDefaultCollection) {
+        g_autoptr(GError) searchError = nullptr;
+        GList *matchingItems = secret_service_search_sync(
+            service, &the_schema, m_attributes.getGHashTable(),
+            SECRET_SEARCH_NONE, nullptr, &searchError);
+        const bool hasMatchingItems = matchingItems != nullptr;
+        if (matchingItems) {
+          g_list_free_full(matchingItems, g_object_unref);
+        }
+        g_object_unref(service);
+
+        // With no alias and no matching item this is a fresh profile. If data
+        // exists elsewhere, fail closed before a write can create a second
+        // default collection and orphan the original item.
+        if (searchError) {
+          throw LibsecretError("secret_service_search_sync", searchError);
+        }
+        if (hasMatchingItems) {
+          throw LibsecretError("KeyringLocked", "KeyringLocked");
+        }
+        return false;
+      }
       g_object_unref(service);
-      throw "KeyringLocked";
+      throw LibsecretError("secret_collection_for_alias_sync", err);
     }
 
     if (!secret_collection_get_locked(collection)) {
       g_object_unref(collection);
       g_object_unref(service);
-      return;
+      return true;
     }
 
     GList *to_unlock = g_list_append(nullptr, collection);
@@ -136,7 +214,9 @@ private:
     g_object_unref(service);
 
     if (n == 0) {
-      throw "KeyringLocked";
+      throw LibsecretError("KeyringLocked", "KeyringLocked");
     }
+
+    return true;
   }
 };

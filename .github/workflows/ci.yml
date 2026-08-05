@@ -5,6 +5,10 @@ on:
     branches: [master, develop]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
@@ -13,6 +17,15 @@ env:
   PUB_ENVIRONMENT: bot.github
 
 jobs:
+  dependency_review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v5
   analysis:
     name: Analysis
     runs-on: ubuntu-latest
@@ -20,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -32,7 +45,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.pub-cache
@@ -41,16 +54,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Install Melos
-        run: |
-          flutter pub global activate melos
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Bootstrap Workspace with Melos
-        run: melos bootstrap
+      - name: Install Workspace Dependencies
+        run: flutter pub get
 
       - name: Lint Code
-        run: melos analyze
+        run: dart run melos exec -- flutter analyze
 
   formatting:
     name: Formatting
@@ -60,7 +68,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -69,7 +77,7 @@ jobs:
           cache: true
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.pub-cache
@@ -78,29 +86,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Install Melos
-        run: |
-          flutter pub global activate melos
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Bootstrap Workspace with Melos
-        run: melos bootstrap
+      - name: Install Workspace Dependencies
+        run: flutter pub get
 
       - name: Check Code Formatting
-        run: melos format --output none --set-exit-if-changed
+        run: dart run melos format --output none --set-exit-if-changed
 
   unit_tests:
     name: Unit Tests
     needs: formatting
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: flutter_secure_storage
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -109,19 +109,20 @@ jobs:
           cache: true
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.pub-cache
-            flutter_secure_storage/.dart_tool
+            .dart_tool
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: Install Dependencies
+      - name: Install Workspace Dependencies
         run: flutter pub get
 
       - name: Run Unit Tests with Coverage
+        working-directory: flutter_secure_storage
         run: flutter test --coverage
 
       - name: Upload Coverage Report
@@ -131,7 +132,7 @@ jobs:
           path: flutter_secure_storage/coverage/lcov.info
 
       - name: Upload Flutter Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: flutter_secure_storage/coverage/lcov.info
@@ -147,7 +148,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up JDK 17
         uses: actions/setup-java@v5
@@ -161,6 +162,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Workspace Dependencies
+        run: flutter pub get
+
       - name: Build Example App (generates native build files)
         working-directory: flutter_secure_storage/example
         run: flutter build apk --debug
@@ -170,7 +174,7 @@ jobs:
         run: ./gradlew :flutter_secure_storage:jacocoTestReport
 
       - name: Upload Android Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: flutter_secure_storage/android/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
@@ -186,7 +190,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -194,8 +198,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install Dependencies
-        working-directory: flutter_secure_storage_web
+      - name: Install Workspace Dependencies
         run: flutter pub get
 
       - name: Run Web Unit Tests
@@ -210,7 +213,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -218,8 +221,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install Dependencies
-        working-directory: flutter_secure_storage_windows
+      - name: Install Workspace Dependencies
         run: flutter pub get
 
       - name: Run Windows Unit Tests with Coverage
@@ -227,7 +229,7 @@ jobs:
         run: flutter test --coverage
 
       - name: Upload Windows Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: flutter_secure_storage_windows/coverage/lcov.info
@@ -243,7 +245,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -281,7 +283,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -315,7 +317,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -361,7 +363,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -374,7 +376,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev libblkid-dev liblzma-dev libsecret-1-dev \
-            gnome-keyring dbus-x11 xvfb
+            libsecret-tools gnome-keyring dbus-x11 xvfb
 
       - name: Install Melos
         run: |
@@ -384,16 +386,52 @@ jobs:
       - name: Bootstrap Workspace with Melos
         run: melos bootstrap
 
-      - name: Start D-Bus Session and Keyring Daemon (locked)
+      - name: Start D-Bus Session and Keyring Daemon (no default collection)
         run: |
           eval $(dbus-launch --sh-syntax)
           echo "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" >> $GITHUB_ENV
           echo "DBUS_SESSION_BUS_PID=$DBUS_SESSION_BUS_PID" >> $GITHUB_ENV
           gnome-keyring-daemon --daemonize --components=secrets
 
-      - name: Run Linux Locked-Keyring Integration Tests
+      - name: Verify Default Collection Is Missing
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections \
+            > "$RUNNER_TEMP/secret-service-collections-before.txt"
+
+          env DISPLAY= dbus-update-activation-environment DISPLAY
+
+      - name: Run Linux Missing-Collection Integration Tests
         working-directory: flutter_secure_storage/example
-        run: xvfb-run flutter test integration_test/linux_locked_keyring_test.dart -d linux
+        run: xvfb-run flutter test integration_test/linux_missing_default_collection_test.dart -d linux
+
+      - name: Verify Missing-Collection Operations Did Not Create a Collection
+        run: |
+          alias_path=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          test "$alias_path" = "(objectpath '/',)"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections \
+            > "$RUNNER_TEMP/secret-service-collections-after.txt"
+
+          diff -u \
+            "$RUNNER_TEMP/secret-service-collections-before.txt" \
+            "$RUNNER_TEMP/secret-service-collections-after.txt"
 
       - name: Unlock Keyring
         run: echo "" | gnome-keyring-daemon --unlock --replace --components=secrets
@@ -401,6 +439,144 @@ jobs:
       - name: Run Linux Integration Tests
         working-directory: flutter_secure_storage/example
         run: xvfb-run flutter test integration_test/linux_test.dart -d linux
+
+      - name: Run Linux Nonmatching-Secret Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: |
+          service=/org/freedesktop/secrets
+          fixture_attr=fss-test-fixture
+          fixture_id=unrelated
+          fixture_value=preserve-me
+
+          cleanup() {
+            status=$?
+            trap - EXIT
+            if ! secret-tool clear "$fixture_attr" "$fixture_id" >/dev/null 2>&1; then
+              test "$status" -ne 0 || status=1
+            fi
+            if ! echo "" | gnome-keyring-daemon \
+              --unlock --replace --components=secrets >/dev/null; then
+              test "$status" -ne 0 || status=1
+            fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          alias_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          alias_path=$(printf '%s' "$alias_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$alias_path"
+          test "$alias_path" != "/"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default /org/freedesktop/secrets/collection/session >/dev/null
+
+          printf '%s' "$fixture_value" | secret-tool store \
+            --label='flutter_secure_storage unrelated integration fixture' \
+            "$fixture_attr" "$fixture_id"
+          test "$(secret-tool lookup "$fixture_attr" "$fixture_id")" = \
+            "$fixture_value"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default "$alias_path" >/dev/null
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$alias_path" \
+            --method org.freedesktop.Secret.Collection.Delete >/dev/null
+          test "$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)" = \
+            "(objectpath '/',)"
+
+          collections_before=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections)
+
+          xvfb-run flutter test \
+            integration_test/linux_missing_default_collection_test.dart -d linux
+
+          test "$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias default)" = \
+            "(objectpath '/',)"
+          collections_after=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Service Collections)
+          test "$collections_after" = "$collections_before"
+          test "$(secret-tool lookup "$fixture_attr" "$fixture_id")" = \
+            "$fixture_value"
+
+      - name: Lock Default Collection
+        run: |
+          alias_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.ReadAlias default)
+          alias_path=$(printf '%s' "$alias_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$alias_path"
+          test "$alias_path" != "/"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path /org/freedesktop/secrets \
+            --method org.freedesktop.Secret.Service.Lock \
+            "[objectpath '$alias_path']"
+
+          locked=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$alias_path" \
+            --method org.freedesktop.DBus.Properties.Get \
+            org.freedesktop.Secret.Collection Locked)
+          test "$locked" = "(<true>,)"
+
+          env DISPLAY= dbus-update-activation-environment DISPLAY
+
+      - name: Run Linux Locked-Keyring Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: xvfb-run flutter test integration_test/linux_locked_keyring_test.dart -d linux
+
+      - name: Unlock Keyring After Locked-Keyring Tests
+        run: echo "" | gnome-keyring-daemon --unlock --replace --components=secrets
+
+      - name: Run Linux Orphaned-Collection Integration Tests
+        working-directory: flutter_secure_storage/example
+        run: |
+          service=/org/freedesktop/secrets
+          login_call=$(gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.ReadAlias login)
+          login_path=$(printf '%s' "$login_call" | \
+            sed -n "s/.*objectpath '\([^']*\)'.*/\1/p")
+          test -n "$login_path"
+          test "$login_path" != "/"
+          test "$login_path" != "/org/freedesktop/secrets/collection/session"
+
+          gdbus call --session \
+            --dest org.freedesktop.secrets \
+            --object-path "$service" \
+            --method org.freedesktop.Secret.Service.SetAlias \
+            default "$login_path" >/dev/null
+
+          xvfb-run flutter test \
+            --dart-define=FSS_DESTRUCTIVE_KEYRING_TESTS=true \
+            integration_test/linux_orphaned_collection_test.dart -d linux
 
   integration_tests_android:
     name: Android Tests
@@ -410,22 +586,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - api-level: 23
-            target: default
-            arch: x86
-            flutter-version: "3.32.x"
           - api-level: 24
             target: default
             arch: x86_64
-            flutter-version: ""
           - api-level: 36
             target: google_apis
             arch: x86_64
-            flutter-version: ""
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Free Disk Space
         run: |
@@ -442,9 +612,11 @@ jobs:
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ matrix.flutter-version || '' }}
           channel: stable
           cache: true
+
+      - name: Install Workspace Dependencies
+        run: flutter pub get
 
       - name: Enable KVM
         run: |
@@ -455,8 +627,12 @@ jobs:
 #      - name: Cache Gradle
 #        uses: gradle/actions/setup-gradle@v5
 
+      - name: Pre-build APK
+        working-directory: flutter_secure_storage/example
+        run: flutter build apk --debug
+
       - name: Cache AVD
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -474,9 +650,15 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
+          script: >-
+            echo "Generated AVD snapshot for caching.";
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true
 
       - name: Run Integration Tests
+        id: integration_tests
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -485,7 +667,33 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: flutter test integration_test
+          script: >-
+            flutter test integration_test/app_test.dart;
+            test_exit_code=$?;
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true;
+            exit $test_exit_code
+          working-directory: flutter_secure_storage/example
+
+      # Retry once in case the run still fails for unrelated infra reasons.
+      - name: Run Integration Tests (retry)
+        if: steps.integration_tests.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: >-
+            flutter test integration_test/app_test.dart;
+            test_exit_code=$?;
+            pkill -SIGTERM crashpad_handler || true;
+            sleep 2;
+            pkill -SIGKILL crashpad_handler || true;
+            exit $test_exit_code
           working-directory: flutter_secure_storage/example
 
   integration_tests_web:
@@ -496,7 +704,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -505,13 +713,12 @@ jobs:
           cache: true
 
       - name: Setup ChromeDriver
-        uses: nanasess/setup-chromedriver@v2
+        uses: nanasess/setup-chromedriver@v3
 
       - name: Start ChromeDriver
         run: chromedriver --port=4444 &
 
-      - name: Install Dependencies
-        working-directory: flutter_secure_storage/example
+      - name: Install Workspace Dependencies
         run: flutter pub get
 
       - name: Run Web Integration Tests
@@ -530,7 +737,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Typecheck Swift against iOS 12 minimum
         run: |
@@ -556,7 +763,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -597,7 +804,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -617,8 +824,7 @@ jobs:
           boot_timeout_seconds: 300
           boot_retries: 3
 
-      - name: Install Dependencies
-        working-directory: flutter_secure_storage/example
+      - name: Install Workspace Dependencies
         run: flutter pub get
 
       - name: Run Integration Tests
