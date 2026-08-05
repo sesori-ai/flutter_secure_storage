@@ -231,6 +231,9 @@ public class FlutterSecureStoragePlugin implements MethodCallHandler, FlutterPlu
                                 break;
                         }
                     } catch (Throwable e) {
+                        if (e instanceof VirtualMachineError) {
+                            throw (VirtualMachineError) e;
+                        }
                         if (config.shouldDeleteOnFailure()) {
                             try {
                                 secureStorage.deleteAll();
@@ -253,7 +256,13 @@ public class FlutterSecureStoragePlugin implements MethodCallHandler, FlutterPlu
                 // Catch Throwable, not just Exception: some OEM builds throw
                 // java.lang.Error subclasses (e.g. NoSuchFieldError) from Android
                 // Keystore framework code, and an uncaught Error on this
-                // HandlerThread would crash the entire app process.
+                // HandlerThread would crash the entire app process. Genuine VM
+                // errors (OOM, StackOverflow) are rethrown instead of being
+                // funneled through handleException/deleteAll, which would
+                // allocate memory the JVM may no longer have.
+                if (e instanceof VirtualMachineError) {
+                    throw (VirtualMachineError) e;
+                }
                 handleException(e);
             }
         }
