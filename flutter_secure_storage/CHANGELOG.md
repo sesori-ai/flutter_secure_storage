@@ -4,6 +4,27 @@
 
 - Fixed a fatal app crash when Android Keystore framework code throws `java.lang.Error` subclasses (e.g. `NoSuchFieldError` on some OEM builds with mismatched framework/KeyMint classes): the plugin's worker thread now catches `Throwable` and reports a `PlatformException` to Dart instead of killing the process.
 
+## [11.1.0-beta.1](https://github.com/juliansteenbakker/flutter_secure_storage/compare/flutter_secure_storage-v11.0.0-beta.1...flutter_secure_storage-v11.1.0-beta.1) (2026-08-05)
+
+
+### Features
+
+* add requireBiometricConfirmation option to AndroidOptions ([7f5f7de](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f5f7de0ea98a6482c02e768faf7c82c2e5b959b))
+* add requireBiometricConfirmation option to AndroidOptions ([97be582](https://github.com/juliansteenbakker/flutter_secure_storage/commit/97be58254a3125c7e4c4d340de505a609674b5d6))
+
+
+### Bug Fixes
+
+* **android:** catch Throwable on worker thread so keystore Errors don't crash the app ([d5802ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/d5802ff6b422a391501145d1113ca9da4c39f1f0))
+* **android:** catch Throwable on worker thread so keystore Errors don't crash the app ([95c74ef](https://github.com/juliansteenbakker/flutter_secure_storage/commit/95c74efecabf211458049e9e6bd8758a0c135e4f)), closes [#1208](https://github.com/juliansteenbakker/flutter_secure_storage/issues/1208)
+* **android:** don't swallow VM errors, catch Throwable on biometric thread too ([d413d3f](https://github.com/juliansteenbakker/flutter_secure_storage/commit/d413d3fb2e8c0faaf78f986be9300e5f1ca6105c))
+* **darwin:** restore access to items written before 0.3.0's SecAccess… ([4523503](https://github.com/juliansteenbakker/flutter_secure_storage/commit/4523503b3b4e86264252aed7024604a83d5f9399))
+* handle missing default keyring on linux ([b39c7c1](https://github.com/juliansteenbakker/flutter_secure_storage/commit/b39c7c1db6c1fe651367031c9d0033d590784de0))
+* **linux:** fail closed on orphaned keyring data ([2e720ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/2e720ff7e6b956a5d1197a5077bb8be39a5d5632))
+* **linux:** handle missing default keyring ([7f1730a](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f1730a3403364f942a66d0833037be3dc88e540))
+* remove redundant ./ prefix from part directives ([cc7018d](https://github.com/juliansteenbakker/flutter_secure_storage/commit/cc7018d15eae56b389348d73f788ae1a03c606c6))
+* remove redundant ./ prefix from part directives ([bc15a90](https://github.com/juliansteenbakker/flutter_secure_storage/commit/bc15a90ff36a3c67f87cae57bf0a9ef94051a7f1))
+
 ## 11.0.0-beta.1
 
 **Breaking changes**
