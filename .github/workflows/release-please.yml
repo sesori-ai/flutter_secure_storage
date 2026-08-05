@@ -26,7 +26,9 @@ jobs:
 
   # Once any package's release lands on develop, fast-track it onto master so
   # that hotfixes can always be branched from a branch that matches the
-  # latest published state.
+  # latest published state. Waits until no other package's release PR is
+  # still pending, otherwise their unreleased commits reach master early and
+  # release-please-master.yml mistakes them for master-side releases.
   promote-to-master:
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'true'
@@ -36,7 +38,20 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v7
+      - name: Skip promotion while other release PRs are still pending
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          pending=$(gh pr list --base develop --label "autorelease: pending" --json number --jq length)
+          if [ "$pending" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "$pending other release PR(s) still open on develop, skipping promotion for now."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Open and merge promotion PR into master
+        if: steps.gate.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         run: |
