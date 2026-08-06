@@ -7,9 +7,7 @@
 
 * handle missing default keyring on linux ([b39c7c1](https://github.com/juliansteenbakker/flutter_secure_storage/commit/b39c7c1db6c1fe651367031c9d0033d590784de0))
 * **linux:** fail closed on orphaned keyring data ([2e720ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/2e720ff7e6b956a5d1197a5077bb8be39a5d5632))
-* **linux:** handle missing default keyring ([7f1730a](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f1730a3403364f942a66d0833037be3dc88e540))
 * **linux:** return structured libsecret error codes ([4691b83](https://github.com/juliansteenbakker/flutter_secure_storage/commit/4691b838519ae91383618120d82fd97a60a35493))
-* **linux:** return structured libsecret error codes ([e1412e3](https://github.com/juliansteenbakker/flutter_secure_storage/commit/e1412e30a9cba2395b017a6aee3c206d772e2417))
 
 ## 3.0.1
 - Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
