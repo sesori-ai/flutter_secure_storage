@@ -1,9 +1,4 @@
-## 3.0.1
-- Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
-- Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
-- Fixed locked or unavailable keyring now surfacing as a catchable `PlatformException` with code `KeyringLocked`.
-- Fixed JSON parse errors and other C++ exceptions now surfacing as a `PlatformException` with code `StorageError` instead of sending malformed bytes through the channel.
-- Updated README with installation instructions for apt, dnf, pacman, Flatpak, and Snapcraft.
+# Changelog
 
 ## [3.0.2](https://github.com/juliansteenbakker/flutter_secure_storage/compare/flutter_secure_storage_linux-v3.0.1...flutter_secure_storage_linux-v3.0.2) (2026-08-06)
 
@@ -15,6 +10,13 @@
 * **linux:** handle missing default keyring ([7f1730a](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f1730a3403364f942a66d0833037be3dc88e540))
 * **linux:** return structured libsecret error codes ([4691b83](https://github.com/juliansteenbakker/flutter_secure_storage/commit/4691b838519ae91383618120d82fd97a60a35493))
 * **linux:** return structured libsecret error codes ([e1412e3](https://github.com/juliansteenbakker/flutter_secure_storage/commit/e1412e30a9cba2395b017a6aee3c206d772e2417))
+
+## 3.0.1
+- Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
+- Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
+- Fixed locked or unavailable keyring now surfacing as a catchable `PlatformException` with code `KeyringLocked`.
+- Fixed JSON parse errors and other C++ exceptions now surfacing as a `PlatformException` with code `StorageError` instead of sending malformed bytes through the channel.
+- Updated README with installation instructions for apt, dnf, pacman, Flatpak, and Snapcraft.
 
 ## 3.0.0
 - Fixed whitespace deprecation warning.
