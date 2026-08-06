@@ -1,3 +1,14 @@
+# Changelog
+
+## [3.0.2](https://github.com/juliansteenbakker/flutter_secure_storage/compare/flutter_secure_storage_linux-v3.0.1...flutter_secure_storage_linux-v3.0.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* handle missing default keyring on linux ([b39c7c1](https://github.com/juliansteenbakker/flutter_secure_storage/commit/b39c7c1db6c1fe651367031c9d0033d590784de0))
+* **linux:** fail closed on orphaned keyring data ([2e720ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/2e720ff7e6b956a5d1197a5077bb8be39a5d5632))
+* **linux:** return structured libsecret error codes ([4691b83](https://github.com/juliansteenbakker/flutter_secure_storage/commit/4691b838519ae91383618120d82fd97a60a35493))
+
 ## 3.0.1
 - Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
 - Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
