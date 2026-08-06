@@ -1,3 +1,5 @@
+# Changelog
+
 ## 3.0.1
 - Fixed `deleteKeyring` storing the string `"null"` instead of an empty JSON object `{}`.
 - Fixed non-UTF-8 error messages from libsecret causing a `FormatException` on the Dart side; messages are now sanitised before being sent through the method channel.
