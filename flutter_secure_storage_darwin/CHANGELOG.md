@@ -1,3 +1,5 @@
+# Changelog
+
 ## 0.4.1
 - Fixed items written by versions prior to 0.3.0 becoming unreadable (and subsequent writes failing with `errSecDuplicateItem`) when no `accessControlFlags` are set. The 0.3.0 fix for `kSecAttrSynchronizable` being dropped caused `read`, `readAll` and `containsKey` to stop querying the legacy `kSecAttrAccessControl` storage envelope that those items were written under; they now fall back to it automatically. ([#1158](https://github.com/juliansteenbakker/flutter_secure_storage/issues/1158))
 
