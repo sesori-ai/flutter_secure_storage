@@ -5,8 +5,7 @@
   "separate-pull-requests": true,
   "packages": {
     "flutter_secure_storage": {
-      "component": "flutter_secure_storage",
-      "prerelease": true
+      "component": "flutter_secure_storage"
     },
     "flutter_secure_storage_platform_interface": {
       "component": "flutter_secure_storage_platform_interface"
