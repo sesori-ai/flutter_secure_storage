@@ -17,14 +17,14 @@ Any data saved using deprecated algorithms or features will be unusable after th
 
 ### Features
 
-* add requireBiometricConfirmation option to AndroidOptions ([7f5f7de](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f5f7de0ea98a6482c02e768faf7c82c2e5b959b))
+* **android:** add requireBiometricConfirmation option to AndroidOptions ([7f5f7de](https://github.com/juliansteenbakker/flutter_secure_storage/commit/7f5f7de0ea98a6482c02e768faf7c82c2e5b959b))
 
 
 ### Bug Fixes
 
 * **android:** catch Throwable on worker thread so keystore Errors don't crash the app ([d5802ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/d5802ff6b422a391501145d1113ca9da4c39f1f0))
 * **android:** don't swallow VM errors, catch Throwable on biometric thread too ([d413d3f](https://github.com/juliansteenbakker/flutter_secure_storage/commit/d413d3fb2e8c0faaf78f986be9300e5f1ca6105c))
-* handle missing default keyring on linux ([b39c7c1](https://github.com/juliansteenbakker/flutter_secure_storage/commit/b39c7c1db6c1fe651367031c9d0033d590784de0))
+* **linux:** handle missing default keyring ([b39c7c1](https://github.com/juliansteenbakker/flutter_secure_storage/commit/b39c7c1db6c1fe651367031c9d0033d590784de0))
 * **linux:** fail closed on orphaned keyring data ([2e720ff](https://github.com/juliansteenbakker/flutter_secure_storage/commit/2e720ff7e6b956a5d1197a5077bb8be39a5d5632))
 * remove redundant ./ prefix from part directives ([cc7018d](https://github.com/juliansteenbakker/flutter_secure_storage/commit/cc7018d15eae56b389348d73f788ae1a03c606c6))
 
