@@ -8,6 +8,31 @@
 #define secret_autofree _GLIB_CLEANUP(secret_cleanup_free)
 static inline void secret_cleanup_free(gchar **p) { secret_password_free(*p); }
 
+// True when libsecret would use the portal backend instead of D-Bus.
+inline bool isSandboxedDesktop(const char *flatpakInfoPath, const char *snapName,
+                                const char *secretBackendEnv) {
+  if (secretBackendEnv != nullptr) {
+    const std::string preference(secretBackendEnv);
+    if (preference == "file") {
+      return true;
+    }
+    if (preference == "service") {
+      return false;
+    }
+  }
+
+  if (snapName != nullptr && snapName[0] != '\0') {
+    return true;
+  }
+
+  return flatpakInfoPath != nullptr && g_file_test(flatpakInfoPath, G_FILE_TEST_EXISTS);
+}
+
+inline bool isSandboxedDesktop() {
+  return isSandboxedDesktop("/.flatpak-info", g_getenv("SNAP_NAME"),
+                             g_getenv("SECRET_BACKEND"));
+}
+
 class LibsecretError : public std::runtime_error {
   std::string error_code;
 
@@ -110,7 +135,7 @@ public:
   }
 
   bool deleteKeyring() {
-    if (!warmupKeyring()) {
+    if (!isSandboxedDesktop() && !warmupKeyring()) {
       return true;
     }
     return this->storeToKeyring(nlohmann::json::object());
@@ -134,7 +159,7 @@ public:
     nlohmann::json value = nlohmann::json::object();
     g_autoptr(GError) err = nullptr;
 
-    if (!warmupKeyring()) {
+    if (!isSandboxedDesktop() && !warmupKeyring()) {
       return value;
     }
 
@@ -156,6 +181,9 @@ private:
   // the normal state of a fresh profile, not a locked keyring. Do not load
   // all collections here: some Secret Service backends fail when an
   // unrelated stale item exists in another collection.
+  //
+  // Skip this when sandboxed: it needs org.freedesktop.secrets directly,
+  // which the portal backend doesn't provide.
   bool warmupKeyring() {
     g_autoptr(GError) err = nullptr;
 

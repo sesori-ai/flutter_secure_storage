@@ -152,5 +152,34 @@ TEST_F(SecretStorageTest, StoredValuesAreValidUtf8) {
   EXPECT_TRUE(isValidUtf8(key));
 }
 
+TEST(IsSandboxedDesktopTest, NotSandboxedByDefault) {
+  EXPECT_FALSE(isSandboxedDesktop("/nonexistent/.flatpak-info", nullptr, nullptr));
+}
+
+TEST(IsSandboxedDesktopTest, FlatpakInfoPresentIsSandboxed) {
+  EXPECT_TRUE(isSandboxedDesktop("/proc/self/status", nullptr, nullptr));
+}
+
+TEST(IsSandboxedDesktopTest, SnapNameSetIsSandboxed) {
+  EXPECT_TRUE(isSandboxedDesktop("/nonexistent/.flatpak-info", "my-snap", nullptr));
+}
+
+TEST(IsSandboxedDesktopTest, EmptySnapNameIsNotSandboxed) {
+  EXPECT_FALSE(isSandboxedDesktop("/nonexistent/.flatpak-info", "", nullptr));
+}
+
+TEST(IsSandboxedDesktopTest, SecretBackendFileForcesTrue) {
+  EXPECT_TRUE(isSandboxedDesktop("/nonexistent/.flatpak-info", nullptr, "file"));
+}
+
+TEST(IsSandboxedDesktopTest, SecretBackendServiceForcesFalseEvenWhenSandboxed) {
+  EXPECT_FALSE(isSandboxedDesktop("/proc/self/status", "my-snap", "service"));
+}
+
+TEST(IsSandboxedDesktopTest, UnrecognizedSecretBackendFallsBackToAutoDetection) {
+  EXPECT_TRUE(isSandboxedDesktop("/proc/self/status", nullptr, "something-else"));
+  EXPECT_FALSE(isSandboxedDesktop("/nonexistent/.flatpak-info", nullptr, "something-else"));
+}
+
 }  // namespace test
 }  // namespace flutter_secure_storage_linux
