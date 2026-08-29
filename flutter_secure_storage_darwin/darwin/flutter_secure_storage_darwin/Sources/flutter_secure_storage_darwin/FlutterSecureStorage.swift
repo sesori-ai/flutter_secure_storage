@@ -172,6 +172,40 @@ class FlutterSecureStorage {
         return query
     }
 
+    /// Fallback query for items written on macOS before classic-keychain mode
+    /// stopped applying the shared accessibility and synchronizable attributes.
+    /// See #1104.
+    private func legacyProtectionQuery(from params: KeychainQueryParameters) -> [CFString: Any]? {
+#if os(macOS)
+        guard !params.usesDataProtectionKeychain else { return nil }
+        guard !(params.useSecureEnclave ?? false) else { return nil }
+        guard params.accessControlFlags == nil || params.accessControlFlags?.isEmpty == true else { return nil }
+        guard params.accessibilityLevel != nil || params.isSynchronizable != nil else { return nil }
+
+        var query = baseQuery(from: params)
+        if let accessibilityLevel = params.accessibilityLevel {
+            query[kSecAttrAccessible] = parseAccessibleAttr(accessibilityLevel)
+        }
+        if let isSynchronizable = params.isSynchronizable {
+            query[kSecAttrSynchronizable] = isSynchronizable
+        }
+        return query
+#else
+        return nil
+#endif
+    }
+
+    /// A legacy protected-keychain query can fail with a missing entitlement in
+    /// an unprovisioned app. Treat that namespace as unavailable rather than
+    /// making a fresh classic-keychain store unusable.
+    private func normalizedLegacyProtectionStatus(_ status: OSStatus) -> OSStatus {
+#if os(macOS)
+        return status == errSecMissingEntitlement ? errSecItemNotFound : status
+#else
+        return status
+#endif
+    }
+
     /// Constructs a keychain query dictionary from the given parameters.
     private func baseQuery(from params: KeychainQueryParameters) -> [CFString: Any] {
         // Validate parameters
@@ -418,7 +452,16 @@ class FlutterSecureStorage {
             // Fall back to the legacy SecAccessControl envelope for items written by older
             // plugin versions (see #1158).
             if status == errSecItemNotFound, let legacy = legacyQuery(from: modifiedParams) {
-                return SecItemCopyMatching(legacy as CFDictionary, nil)
+                let legacyStatus = SecItemCopyMatching(legacy as CFDictionary, nil)
+                if legacyStatus != errSecItemNotFound {
+                    return legacyStatus
+                }
+            }
+
+            // Also find items written before classic-keychain mode stopped applying
+            // the shared protection attributes (see #1104).
+            if status == errSecItemNotFound, let legacy = legacyProtectionQuery(from: modifiedParams) {
+                return normalizedLegacyProtectionStatus(SecItemCopyMatching(legacy as CFDictionary, nil))
             }
             return status
         }
@@ -514,6 +557,23 @@ class FlutterSecureStorage {
             }
         }
 
+        // Include items written with the former classic-mode query as well. A
+        // missing entitlement is ignored here because the old namespace may be
+        // inaccessible to an unprovisioned app while the classic namespace is usable.
+        if var legacyProtection = legacyProtectionQuery(from: params) {
+            legacyProtection[kSecMatchLimit] = kSecMatchLimitAll
+            legacyProtection[kSecReturnAttributes] = true
+            legacyProtection[kSecReturnData] = true
+
+            var legacyProtectionRef: AnyObject?
+            let legacyProtectionStatus = normalizedLegacyProtectionStatus(
+                SecItemCopyMatching(legacyProtection as CFDictionary, &legacyProtectionRef)
+            )
+            if legacyProtectionStatus == errSecSuccess {
+                collectResults(from: legacyProtectionRef, into: &results)
+            }
+        }
+
         return FlutterSecureStorageResponse(status: errSecSuccess, value: results)
     }
 
@@ -529,6 +589,11 @@ class FlutterSecureStorage {
             // plugin versions (see #1158).
             if status == errSecItemNotFound, let legacy = legacyQuery(from: params) {
                 status = SecItemCopyMatching(legacy as CFDictionary, &ref)
+            }
+
+            // Also find items written with the former classic-mode query (see #1104).
+            if status == errSecItemNotFound, let legacy = legacyProtectionQuery(from: params) {
+                status = normalizedLegacyProtectionStatus(SecItemCopyMatching(legacy as CFDictionary, &ref))
             }
 
             if (status == errSecItemNotFound) {
@@ -774,26 +839,49 @@ class FlutterSecureStorage {
             modifiedParams.accessControlFlags = nil
 
             let query = baseQuery(from: modifiedParams)
-            return SecItemDelete(query as CFDictionary)
+            let primaryStatus = SecItemDelete(query as CFDictionary)
+
+            // Remove the former protected-attribute namespace too, so a write
+            // after a successful compatibility lookup migrates cleanly.
+            var legacyParams = params
+            if clearKey {
+                legacyParams.key = nil
+            }
+            legacyParams.isSynchronizable = synchronizable
+            legacyParams.accessControlFlags = nil
+            let legacyStatus: OSStatus
+            if let legacy = legacyProtectionQuery(from: legacyParams) {
+                legacyStatus = normalizedLegacyProtectionStatus(SecItemDelete(legacy as CFDictionary))
+            } else {
+                legacyStatus = errSecItemNotFound
+            }
+
+            if primaryStatus != errSecSuccess && primaryStatus != errSecItemNotFound {
+                return primaryStatus
+            }
+            if legacyStatus != errSecSuccess && legacyStatus != errSecItemNotFound {
+                return legacyStatus
+            }
+            if primaryStatus == errSecSuccess || legacyStatus == errSecSuccess {
+                return errSecSuccess
+            }
+            return errSecItemNotFound
         }
 
         let statusSync = deleteFromKeychain(withSynchronizable: true)
         let statusNonSync = deleteFromKeychain(withSynchronizable: false)
 
-        // Return success if both operations report item not found
-        if statusSync == errSecItemNotFound && statusNonSync == errSecItemNotFound {
-            return FlutterSecureStorageResponse(status: errSecSuccess, value: nil)
+        // A successful deletion in one namespace must not hide an error in the
+        // other namespace. Missing items are the only non-success status that
+        // is safe to ignore.
+        if statusSync != errSecSuccess && statusSync != errSecItemNotFound {
+            return FlutterSecureStorageResponse(status: statusSync, value: nil)
+        }
+        if statusNonSync != errSecSuccess && statusNonSync != errSecItemNotFound {
+            return FlutterSecureStorageResponse(status: statusNonSync, value: nil)
         }
 
-        // Return success if either operation succeeded
-        if statusSync == errSecSuccess || statusNonSync == errSecSuccess {
-            return FlutterSecureStorageResponse(status: errSecSuccess, value: nil)
-        }
-
-        // Return the first error encountered
-        let status = statusSync != errSecItemNotFound ? statusSync : statusNonSync
-
-        return FlutterSecureStorageResponse(status: status, value: nil)
+        return FlutterSecureStorageResponse(status: errSecSuccess, value: nil)
     }
 
     internal func getPersistentReference(params: KeychainQueryParameters) -> FlutterSecureStorageResponse {
@@ -801,7 +889,11 @@ class FlutterSecureStorage {
         query[kSecReturnPersistentRef] = true
 
         var ref: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &ref)
+        var status = SecItemCopyMatching(query as CFDictionary, &ref)
+        if status == errSecItemNotFound, var legacy = legacyProtectionQuery(from: params) {
+            legacy[kSecReturnPersistentRef] = true
+            status = normalizedLegacyProtectionStatus(SecItemCopyMatching(legacy as CFDictionary, &ref))
+        }
         return FlutterSecureStorageResponse(status: status, value: ref)
     }
 
