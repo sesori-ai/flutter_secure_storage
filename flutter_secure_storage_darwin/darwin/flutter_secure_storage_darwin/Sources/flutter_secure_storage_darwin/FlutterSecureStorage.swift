@@ -688,49 +688,76 @@ class FlutterSecureStorage {
         }
     }
 
+    /// Updates an item in the classic macOS namespace or an accessible legacy namespace.
+    private func writeClassicKeychain(params: KeychainQueryParameters, value: String) -> FlutterSecureStorageResponse {
+        let update: [CFString: Any] = [kSecValueData: value.data(using: .utf8) as Any]
+        let query = baseQuery(from: params)
+        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+
+        if status == errSecSuccess {
+            return FlutterSecureStorageResponse(status: status, value: nil)
+        }
+        if status != errSecItemNotFound {
+            return FlutterSecureStorageResponse(status: status, value: nil)
+        }
+
+        // Preserve an item written with either legacy query envelope. Updating
+        // it in place avoids deleting the only copy before a replacement add.
+        if let legacy = legacyQuery(from: params) {
+            let legacyStatus = normalizedLegacyProtectionStatus(
+                SecItemUpdate(legacy as CFDictionary, update as CFDictionary)
+            )
+            if legacyStatus == errSecSuccess {
+                return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
+            }
+            if legacyStatus != errSecItemNotFound {
+                return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
+            }
+        }
+        if let legacyProtection = legacyProtectionQuery(from: params) {
+            let legacyProtectionStatus = normalizedLegacyProtectionStatus(
+                SecItemUpdate(legacyProtection as CFDictionary, update as CFDictionary)
+            )
+            if legacyProtectionStatus == errSecSuccess {
+                return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
+            }
+            if legacyProtectionStatus != errSecItemNotFound {
+                return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
+            }
+        }
+
+        var newItem = query
+        newItem[kSecValueData] = value.data(using: .utf8)
+        let addStatus = SecItemAdd(newItem as CFDictionary, nil)
+        return FlutterSecureStorageResponse(status: addStatus, value: nil)
+    }
+
     /// Writes an item to the keychain. Updates if the key already exists.
     internal func write(params: KeychainQueryParameters, value: String) -> FlutterSecureStorageResponse {
+#if os(macOS)
+        if !params.usesDataProtectionKeychain && !(params.useSecureEnclave ?? false) {
+            return writeClassicKeychain(params: params, value: value)
+        }
+#endif
+
         if !(params.useSecureEnclave ?? false) {
-            let update: [CFString: Any] = [kSecValueData: value.data(using: .utf8) as Any]
-            let query = baseQuery(from: params)
-            let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+            let keyExists = (containsKey(params: params).getOrElse(false))
+            var query = baseQuery(from: params)
 
-            if status == errSecSuccess {
-                return FlutterSecureStorageResponse(status: status, value: nil)
-            }
-            if status != errSecItemNotFound {
-                return FlutterSecureStorageResponse(status: status, value: nil)
-            }
+            if keyExists {
+                let update: [CFString: Any] = [kSecValueData: value.data(using: .utf8) as Any]
+                let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
 
-            // Preserve an item written with either legacy query envelope. Updating
-            // it in place avoids deleting the only copy before a replacement add.
-            if let legacy = legacyQuery(from: params) {
-                let legacyStatus = normalizedLegacyProtectionStatus(
-                    SecItemUpdate(legacy as CFDictionary, update as CFDictionary)
-                )
-                if legacyStatus == errSecSuccess {
-                    return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
-                }
-                if legacyStatus != errSecItemNotFound {
-                    return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
-                }
-            }
-            if let legacyProtection = legacyProtectionQuery(from: params) {
-                let legacyProtectionStatus = normalizedLegacyProtectionStatus(
-                    SecItemUpdate(legacyProtection as CFDictionary, update as CFDictionary)
-                )
-                if legacyProtectionStatus == errSecSuccess {
-                    return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
-                }
-                if legacyProtectionStatus != errSecItemNotFound {
-                    return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
+                if status == errSecSuccess {
+                    return FlutterSecureStorageResponse(status: status, value: nil)
+                } else {
+                    _ = delete(params: params)
                 }
             }
 
-            var newItem = query
-            newItem[kSecValueData] = value.data(using: .utf8)
-            let addStatus = SecItemAdd(newItem as CFDictionary, nil)
-            return FlutterSecureStorageResponse(status: addStatus, value: nil)
+            query[kSecValueData] = value.data(using: .utf8)
+            let status = SecItemAdd(query as CFDictionary, nil)
+            return FlutterSecureStorageResponse(status: status, value: nil)
         }
 
         // Secure Enclave-backed: encrypt with per-item AES key wrapped by enclave key
