@@ -238,9 +238,19 @@ class FlutterSecureStorage {
             effectiveParams.accessControlFlags = "userPresence"
         }
 
+        #if os(macOS)
+        // The shared Apple options always provide accessibility and synchronizable
+        // values, but these attributes select the Data Protection Keychain on
+        // macOS. In classic-keychain mode they cause errSecMissingEntitlement
+        // for apps without the restricted keychain entitlement.
+        let shouldApplyProtectionAttributes = params.usesDataProtectionKeychain
+        #else
+        let shouldApplyProtectionAttributes = true
+        #endif
+
         if let accessControl = createAccessControl(params: effectiveParams) {
             query[kSecAttrAccessControl] = accessControl
-        } else {
+        } else if shouldApplyProtectionAttributes {
             if let accessibilityLevel = effectiveParams.accessibilityLevel {
                 query[kSecAttrAccessible] = parseAccessibleAttr(accessibilityLevel)
             }
