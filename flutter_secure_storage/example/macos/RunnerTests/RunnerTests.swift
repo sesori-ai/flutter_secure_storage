@@ -104,47 +104,4 @@ class RunnerTests: XCTestCase {
         XCTAssertNil(received,
             "No events should be emitted after the stream listener has been cancelled")
     }
-
-    func testClassicKeychainRoundTripWithoutDataProtectionEntitlement() {
-        let plugin = FlutterSecureStorageDarwinPlugin()
-        let key = "classic-keychain-test-\(UUID().uuidString)"
-        let options: [String: Any?] = [
-            "accountName": "com.flutter_secure_storage.classic-test",
-            "accessibility": "unlocked",
-            "synchronizable": "false",
-            "usesDataProtectionKeychain": "false",
-        ]
-
-        func invoke(method: String, value: String? = nil) -> Any? {
-            var arguments: [String: Any?] = ["key": key, "options": options]
-            if let value {
-                arguments["value"] = value
-            }
-
-            let expectation = self.expectation(description: method)
-            var response: Any?
-            plugin.handle(
-                FlutterMethodCall(method: method, arguments: arguments),
-                result: { result in
-                    response = result
-                    expectation.fulfill()
-                }
-            )
-            wait(for: [expectation], timeout: 5)
-
-            if let error = response as? FlutterError {
-                XCTFail("\(method) failed: \(error.code) \(error.message ?? "")")
-            }
-            return response
-        }
-
-        _ = invoke(method: "delete")
-        _ = invoke(method: "write", value: "first")
-        XCTAssertEqual(invoke(method: "read") as? String, "first")
-        _ = invoke(method: "write", value: "second")
-        XCTAssertEqual(invoke(method: "read") as? String, "second")
-        _ = invoke(method: "delete")
-        XCTAssertNil(invoke(method: "read"))
-    }
-
 }

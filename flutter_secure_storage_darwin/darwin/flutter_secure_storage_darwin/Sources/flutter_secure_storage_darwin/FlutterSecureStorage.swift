@@ -931,9 +931,13 @@ class FlutterSecureStorage {
 
         var ref: AnyObject?
         var status = SecItemCopyMatching(query as CFDictionary, &ref)
-        if status == errSecItemNotFound, var legacy = legacyProtectionQuery(from: params) {
+        if status == errSecItemNotFound, var legacy = legacyQuery(from: params) {
             legacy[kSecReturnPersistentRef] = true
             status = normalizedLegacyProtectionStatus(SecItemCopyMatching(legacy as CFDictionary, &ref))
+        }
+        if status == errSecItemNotFound, var legacyProtection = legacyProtectionQuery(from: params) {
+            legacyProtection[kSecReturnPersistentRef] = true
+            status = normalizedLegacyProtectionStatus(SecItemCopyMatching(legacyProtection as CFDictionary, &ref))
         }
         return FlutterSecureStorageResponse(status: status, value: ref)
     }
