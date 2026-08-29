@@ -452,7 +452,9 @@ class FlutterSecureStorage {
             // Fall back to the legacy SecAccessControl envelope for items written by older
             // plugin versions (see #1158).
             if status == errSecItemNotFound, let legacy = legacyQuery(from: modifiedParams) {
-                let legacyStatus = SecItemCopyMatching(legacy as CFDictionary, nil)
+                let legacyStatus = normalizedLegacyProtectionStatus(
+                    SecItemCopyMatching(legacy as CFDictionary, nil)
+                )
                 if legacyStatus != errSecItemNotFound {
                     return legacyStatus
                 }
@@ -551,7 +553,9 @@ class FlutterSecureStorage {
             legacy[kSecReturnData] = true
 
             var legacyRef: AnyObject?
-            let legacyStatus = SecItemCopyMatching(legacy as CFDictionary, &legacyRef)
+            let legacyStatus = normalizedLegacyProtectionStatus(
+                SecItemCopyMatching(legacy as CFDictionary, &legacyRef)
+            )
             if legacyStatus == errSecSuccess {
                 collectResults(from: legacyRef, into: &results)
             }
@@ -588,7 +592,7 @@ class FlutterSecureStorage {
             // Fall back to the legacy SecAccessControl envelope for items written by older
             // plugin versions (see #1158).
             if status == errSecItemNotFound, let legacy = legacyQuery(from: params) {
-                status = SecItemCopyMatching(legacy as CFDictionary, &ref)
+                status = normalizedLegacyProtectionStatus(SecItemCopyMatching(legacy as CFDictionary, &ref))
             }
 
             // Also find items written with the former classic-mode query (see #1104).
@@ -687,23 +691,46 @@ class FlutterSecureStorage {
     /// Writes an item to the keychain. Updates if the key already exists.
     internal func write(params: KeychainQueryParameters, value: String) -> FlutterSecureStorageResponse {
         if !(params.useSecureEnclave ?? false) {
-            let keyExists = (containsKey(params: params).getOrElse(false))
-            var query = baseQuery(from: params)
+            let update: [CFString: Any] = [kSecValueData: value.data(using: .utf8) as Any]
+            let query = baseQuery(from: params)
+            let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
 
-            if keyExists {
-                let update: [CFString: Any] = [kSecValueData: value.data(using: .utf8) as Any]
-                let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+            if status == errSecSuccess {
+                return FlutterSecureStorageResponse(status: status, value: nil)
+            }
+            if status != errSecItemNotFound {
+                return FlutterSecureStorageResponse(status: status, value: nil)
+            }
 
-                if status == errSecSuccess {
-                    return FlutterSecureStorageResponse(status: status, value: nil)
-                } else {
-                    _ = delete(params: params)
+            // Preserve an item written with either legacy query envelope. Updating
+            // it in place avoids deleting the only copy before a replacement add.
+            if let legacy = legacyQuery(from: params) {
+                let legacyStatus = normalizedLegacyProtectionStatus(
+                    SecItemUpdate(legacy as CFDictionary, update as CFDictionary)
+                )
+                if legacyStatus == errSecSuccess {
+                    return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
+                }
+                if legacyStatus != errSecItemNotFound {
+                    return FlutterSecureStorageResponse(status: legacyStatus, value: nil)
+                }
+            }
+            if let legacyProtection = legacyProtectionQuery(from: params) {
+                let legacyProtectionStatus = normalizedLegacyProtectionStatus(
+                    SecItemUpdate(legacyProtection as CFDictionary, update as CFDictionary)
+                )
+                if legacyProtectionStatus == errSecSuccess {
+                    return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
+                }
+                if legacyProtectionStatus != errSecItemNotFound {
+                    return FlutterSecureStorageResponse(status: legacyProtectionStatus, value: nil)
                 }
             }
 
-            query[kSecValueData] = value.data(using: .utf8)
-            let status = SecItemAdd(query as CFDictionary, nil)
-            return FlutterSecureStorageResponse(status: status, value: nil)
+            var newItem = query
+            newItem[kSecValueData] = value.data(using: .utf8)
+            let addStatus = SecItemAdd(newItem as CFDictionary, nil)
+            return FlutterSecureStorageResponse(status: addStatus, value: nil)
         }
 
         // Secure Enclave-backed: encrypt with per-item AES key wrapped by enclave key
@@ -841,28 +868,42 @@ class FlutterSecureStorage {
             let query = baseQuery(from: modifiedParams)
             let primaryStatus = SecItemDelete(query as CFDictionary)
 
-            // Remove the former protected-attribute namespace too, so a write
-            // after a successful compatibility lookup migrates cleanly.
             var legacyParams = params
             if clearKey {
                 legacyParams.key = nil
             }
             legacyParams.isSynchronizable = synchronizable
             legacyParams.accessControlFlags = nil
-            let legacyStatus: OSStatus
+
+            // Remove the former protected-attribute namespace too, so a write
+            // after a successful compatibility lookup migrates cleanly.
+            let legacyProtectionStatus: OSStatus
             if let legacy = legacyProtectionQuery(from: legacyParams) {
-                legacyStatus = normalizedLegacyProtectionStatus(SecItemDelete(legacy as CFDictionary))
+                legacyProtectionStatus = normalizedLegacyProtectionStatus(SecItemDelete(legacy as CFDictionary))
             } else {
-                legacyStatus = errSecItemNotFound
+                legacyProtectionStatus = errSecItemNotFound
+            }
+
+            // Also remove the pre-0.3.0 SecAccessControl envelope. Every
+            // compatibility namespace is best-effort only for missing items,
+            // but a real failure must remain visible to the caller.
+            let legacyEnvelopeStatus: OSStatus
+            if let legacy = legacyQuery(from: legacyParams) {
+                legacyEnvelopeStatus = normalizedLegacyProtectionStatus(SecItemDelete(legacy as CFDictionary))
+            } else {
+                legacyEnvelopeStatus = errSecItemNotFound
             }
 
             if primaryStatus != errSecSuccess && primaryStatus != errSecItemNotFound {
                 return primaryStatus
             }
-            if legacyStatus != errSecSuccess && legacyStatus != errSecItemNotFound {
-                return legacyStatus
+            if legacyProtectionStatus != errSecSuccess && legacyProtectionStatus != errSecItemNotFound {
+                return legacyProtectionStatus
             }
-            if primaryStatus == errSecSuccess || legacyStatus == errSecSuccess {
+            if legacyEnvelopeStatus != errSecSuccess && legacyEnvelopeStatus != errSecItemNotFound {
+                return legacyEnvelopeStatus
+            }
+            if primaryStatus == errSecSuccess || legacyProtectionStatus == errSecSuccess || legacyEnvelopeStatus == errSecSuccess {
                 return errSecSuccess
             }
             return errSecItemNotFound
